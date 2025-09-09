@@ -1,17 +1,14 @@
-import type { Metadata } from "next";
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+'use client';
 
-export const metadata: Metadata = {
-  title: "Metrics - Harmony",
-};
-
+import React from 'react';
+import { useUser } from "@clerk/nextjs";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/sidebar";
+import { ClientRouteGuard } from "@/components/client-route-guard";
 
 interface PageProps {
   params: Promise<{
@@ -19,15 +16,36 @@ interface PageProps {
   }>;
 }
 
-export default async function MetricsPage({ params }: PageProps) {
-  const { username } = await params;
-  const user = await currentUser();
+export default function MetricsPage({ params }: PageProps) {
+  const { user, isLoaded } = useUser();
+  const [username, setUsername] = React.useState<string>('');
+
+  React.useEffect(() => {
+    const getUsername = async () => {
+      const resolvedParams = await params;
+      setUsername(resolvedParams.username);
+    };
+    getUsername();
+  }, [params]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   if (!user) {
-    redirect("/login");
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Please sign in to access this page.</div>
+      </div>
+    );
   }
 
   return (
+    <ClientRouteGuard requireAuth={true}>
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
@@ -43,7 +61,7 @@ export default async function MetricsPage({ params }: PageProps) {
                   
                   <div className="flex items-start gap-6">
                     <div className="flex-shrink-0">
-                      {user.imageUrl ? (
+                      {user?.imageUrl ? (
                         <img
                           src={user.imageUrl}
                           alt={user.fullName || "User"}
@@ -60,25 +78,25 @@ export default async function MetricsPage({ params }: PageProps) {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                            {user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous User"}
+                            {user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Anonymous User"}
                           </h2>
                           <p className="text-gray-600 mb-4">
-                            {user.emailAddresses[0]?.emailAddress}
+                            {user?.emailAddresses[0]?.emailAddress}
                           </p>
                           
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-500">User ID:</span>
-                              <span className="text-gray-900 font-mono text-xs">{user.id}</span>
+                              <span className="text-gray-900 font-mono text-xs">{user?.id}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Member since:</span>
-                              <span className="text-gray-900">{new Date(user.createdAt!).toLocaleDateString()}</span>
+                              <span className="text-gray-900">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Last active:</span>
                               <span className="text-gray-900">
-                                {user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString() : "N/A"}
+                                {user?.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString() : "N/A"}
                               </span>
                             </div>
                           </div>
@@ -89,11 +107,11 @@ export default async function MetricsPage({ params }: PageProps) {
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                               <span className="text-gray-500">Primary Email:</span>
-                              <span className="text-gray-900">{user.emailAddresses[0]?.emailAddress}</span>
+                              <span className="text-gray-900">{user?.emailAddresses[0]?.emailAddress}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Phone:</span>
-                              <span className="text-gray-900">{user.phoneNumbers[0]?.phoneNumber || "Not provided"}</span>
+                              <span className="text-gray-900">{user?.phoneNumbers[0]?.phoneNumber || "Not provided"}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-500">Username:</span>
@@ -119,7 +137,7 @@ export default async function MetricsPage({ params }: PageProps) {
                     Analytics Dashboard
                   </h2>
                   <p className="text-gray-600">
-                    Welcome back, {user.firstName || user.fullName || username}! Here's your data overview.
+                    Welcome back, {user?.firstName || user?.fullName || "User"}! Here's your data overview.
                   </p>
                 </div>
 
@@ -302,5 +320,6 @@ export default async function MetricsPage({ params }: PageProps) {
           </div>
       </SidebarInset>
     </SidebarProvider>
+    </ClientRouteGuard>
   );
 }

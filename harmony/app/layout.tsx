@@ -24,6 +24,8 @@ export default function RootLayout({
               {children}
             </RouteGuard>
           </AuthProvider>
+          {/* Global Clerk CAPTCHA container */}
+          <div id="clerk-captcha" style={{ position: 'absolute', left: '-9999px', visibility: 'hidden' }}></div>
         </body>
       </html>
     </ClerkProvider>

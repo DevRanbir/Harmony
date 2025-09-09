@@ -95,6 +95,7 @@ export default function LoginPage() {
                               socialButtonsBlockButton: "border-input bg-background hover:bg-accent hover:text-accent-foreground",
                               formFieldInput: "border-input bg-background",
                               footerActionLink: "text-primary hover:text-primary/80",
+                              captcha: "border-input bg-background",
                             },
                             layout: {
                               logoImageUrl: undefined,
@@ -117,6 +118,7 @@ export default function LoginPage() {
                               socialButtonsBlockButton: "border-input bg-background hover:bg-accent hover:text-accent-foreground",
                               formFieldInput: "border-input bg-background",
                               footerActionLink: "text-primary hover:text-primary/80",
+                              captcha: "border-input bg-background",
                             },
                             layout: {
                               logoImageUrl: undefined,
