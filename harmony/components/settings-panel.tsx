@@ -15,6 +15,7 @@ import SliderControl from "@/components/slider-control";
 import { Sheet, SheetTitle, SheetContent } from "@/components/sheet";
 import * as React from "react";
 import { ScrollArea } from "@/components/scroll-area";
+import { ChatHistorySection } from "@/components/chat-history-section";
 
 type SettingsPanelContext = {
   openMobile: boolean;
@@ -160,6 +161,9 @@ const SettingsPanelContent = () => {
 
           </div>
         </div>
+
+        {/* Chat History Section */}
+        <ChatHistorySection />
       </div>
     </>
   );

@@ -21,14 +21,65 @@ import {
   RiLeafLine,
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { useAuthContext } from "@/contexts/auth-context";
+import { useChat } from "@/contexts/chat-context";
 
 export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { user } = useAuthContext();
+  const { messages, sendMessage, isLoading, isSending, isThinking, currentDate } = useChat();
+  const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(false);
+  const [lastChatDate, setLastChatDate] = useState(currentDate);
+  
+  const [inputValue, setInputValue] = useState("");
 
+  const scrollToBottom = (behavior: 'auto' | 'smooth' = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Reset scroll state when chat changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView();
-  }, []);
+    if (currentDate !== lastChatDate) {
+      setHasInitiallyScrolled(false);
+      setLastChatDate(currentDate);
+    }
+  }, [currentDate, lastChatDate]);
+
+  // Only scroll when messages change, but instantly for initial load
+  useEffect(() => {
+    if (messages.length > 0) {
+      if (!hasInitiallyScrolled) {
+        // First load - scroll instantly to bottom
+        scrollToBottom('auto');
+        setHasInitiallyScrolled(true);
+      } else {
+        // Subsequent messages - smooth scroll
+        scrollToBottom('smooth');
+      }
+    }
+  }, [messages, hasInitiallyScrolled]);
+
+  const handleSendMessage = async () => {
+    if (isSending) return;
+
+    const messageContent = inputValue.trim();
+    setInputValue("");
+    
+    await sendMessage(messageContent);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+  };
 
   return (
     <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
@@ -70,33 +121,44 @@ export default function Chat() {
                   size={14}
                   aria-hidden="true"
                 />
-                A new Day
+                A New Day
               </div>
             </div>
-            <ChatMessage isUser>
-              <p>Hey Bolt, can you tell me more about AI Agents?</p>
-            </ChatMessage>
-            <ChatMessage>
-              <p>
-                AI agents are software that perceive their environment and act
-                autonomously to achieve goals, making decisions, learning, and
-                interacting. For example, an AI agent might schedule meetings by
-                resolving conflicts, contacting participants, and finding
-                optimal times—all without constant supervision.
-              </p>
-              <p>Let me know if you&lsquo;d like more details!</p>
-            </ChatMessage>
-            <ChatMessage isUser>
-              <p>All clear, thank you!</p>
-            </ChatMessage>
+            
+            {messages.map((message) => (
+              <ChatMessage 
+                key={message.id} 
+                isUser={message.isUser} 
+                userProfileImage={message.userProfileImage || user?.imageUrl}
+                messageId={message.id}
+                messageContent={message.content}
+                messageTimestamp={message.timestamp}
+              >
+                <p style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>
+              </ChatMessage>
+            ))}
+            
+            {isThinking && (
+              <div className="transition-opacity duration-300 ease-out">
+                <ChatMessage isUser={false}>
+                  <p>Thinking...</p>
+                </ChatMessage>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} aria-hidden="true" />
           </div>
         </div>
         {/* Footer */}
         <div className="sticky bottom-0 pt-4 md:pt-8 z-50">
           <div className="max-w-3xl mx-auto bg-background rounded-[20px] pb-4 md:pb-8">
-            <div className="relative rounded-[20px] border border-transparent bg-muted transition-colors focus-within:bg-muted/50 focus-within:border-input has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&:has(input:is(:disabled))_*]:pointer-events-none">
+            <div className="relative rounded-[20px] border focus-within:border-input has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&:has(input:is(:disabled))_*]:pointer-events-none">
               <textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyPress}
+                disabled={isSending}
                 className="flex sm:min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none]"
                 placeholder="Ask me anything..."
                 aria-label="Enter your prompt"
@@ -173,7 +235,13 @@ export default function Chat() {
                     </svg>
                     <span className="sr-only">Generate</span>
                   </Button>
-                  <Button className="rounded-full h-8">Ask Bart</Button>
+                  <Button 
+                    className="rounded-full h-8"
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim() || isSending}
+                  >
+                    {isSending ? "Sending..." : "Ask Harmony"}
+                  </Button>
                 </div>
               </div>
             </div>

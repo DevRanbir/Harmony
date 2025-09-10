@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useAuthContext } from "@/contexts/auth-context";
 
@@ -29,6 +30,7 @@ import {
   RiPlanetLine,
   RiSeedlingLine,
   RiSettings3Line,
+  RiBookmarkLine,
 } from "@remixicon/react";
 
 // Navigation data
@@ -42,6 +44,11 @@ const navData = {
           title: "Chat",
           url: "/dashboard",
           icon: RiChat1Line,
+        },
+        {
+          title: "Bookmarks",
+          url: "/bookmarks",
+          icon: RiBookmarkLine,
         },
         {
           title: "Gallery",
@@ -141,6 +148,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (itemUrl === "/prices") {
       return pathname === "/prices";
     }
+    if (itemUrl === "/bookmarks") {
+      return pathname === "/bookmarks";
+    }
     return pathname === itemUrl;
   };
 
@@ -164,7 +174,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>svg]:size-auto"
                     isActive={isItemActive(item.url)}
                   >
-                    <a href={item.url}>
+                    <Link href={item.url} prefetch={true}>
                       {item.icon && (
                         <item.icon
                           className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-sidebar-foreground"
@@ -173,7 +183,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         />
                       )}
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -199,7 +209,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto"
                     isActive={isItemActive(item.url)}
                   >
-                    <a href={item.url}>
+                    <Link href={item.url} prefetch={true}>
                       {item.icon && (
                         <item.icon
                           className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-primary"
@@ -208,7 +218,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         />
                       )}
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

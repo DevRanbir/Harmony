@@ -5,6 +5,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/breadcrumb";
 import { PricingTable } from '@clerk/nextjs';
 
 export const metadata: Metadata = {
@@ -18,12 +26,26 @@ export default function PricingPage() {
       <AppSidebar />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
         <div className="min-h-screen bg-background">
-          {/* Header with Sidebar Trigger */}
-          <div className="border-b bg-card/50">
-            <div className="container mx-auto px-4 py-4">
-              <SidebarTrigger className="mb-4" />
+          {/* Header */}
+          <div className="py-5 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
+            <div className="flex items-center justify-between gap-2 px-4 md:px-6 lg:px-8">
+              <Breadcrumb>
+                <BreadcrumbList className="sm:gap-1.5">
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Pricing</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
             </div>
-            <div className="container mx-auto px-4 pb-16 text-center">
+          </div>
+
+          {/* Hero Section */}
+          <div className="border-b bg-card/50">
+            <div className="container mx-auto px-4 pb-16 pt-10 text-center">
               <h1 className="text-4xl font-bold text-foreground mb-4">
                 Choose Your Plan
               </h1>
@@ -36,7 +58,7 @@ export default function PricingPage() {
 
           {/* Clerk Pricing Table */}
           <div className="container mx-auto px-4 py-16">
-            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 1rem' }}>
+            <div style={{margin: '0 auto', padding: '0 1rem' }}>
               <PricingTable />
             </div>
           </div>
