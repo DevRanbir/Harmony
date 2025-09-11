@@ -59,47 +59,64 @@ export function TeamSwitcher({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground gap-3 [&>svg]:size-auto"
+              size={state === "collapsed" ? "sm" : "lg"}
+              className={`data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground [&>svg]:size-auto transition-all duration-200 ease-in-out ${
+                state === "collapsed" 
+                  ? "gap-0 justify-center w-10 h-10 p-0 flex items-center" 
+                  : "gap-3"
+              }`}
               tooltip={state === "collapsed" ? (mounted ? (activeTeam?.name ?? "Select a User") : "Loading...") : undefined}
             >
-              <div className="flex aspect-square size-9 items-center justify-center rounded-md overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none">
+              <div className={`flex items-center justify-center rounded-md overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none transition-all duration-200 ease-in-out ${
+                state === "collapsed" 
+                  ? "w-8 h-8 min-w-8 min-h-8 mx-auto" 
+                  : "aspect-square size-9"
+              }`}>
                 {mounted && activeTeam && activeTeam.logo ? (
                   <img
                     src={activeTeam.logo}
-                    width={36}
-                    height={36}
+                    width={32}
+                    height={32}
                     alt={activeTeam.name}
-                    className="w-full h-full object-cover"
+                    className={`object-cover transition-all duration-200 ease-in-out ${
+                      state === "collapsed" ? "w-8 h-8" : "w-full h-full"
+                    }`}
                   />
                 ) : (
-                  <span className="text-lg font-semibold" suppressHydrationWarning>
+                  <span className={`font-semibold transition-all duration-200 ease-in-out ${
+                    state === "collapsed" ? "text-sm" : "text-lg"
+                  }`} suppressHydrationWarning>
                     {mounted ? (activeTeam?.name?.charAt(0)?.toUpperCase() || "U") : "L"}
                   </span>
                 )}
               </div>
-              <div className="grid flex-1 text-left text-base leading-tight">
-                <span className="truncate font-medium" suppressHydrationWarning>
-                  {mounted ? (activeTeam?.name ?? "Select a User") : "Loading..."}
-                </span>
-                {!isUserSignedIn && activeTeam?.name === "Not signed in" && (
-                  <span className="text-xs text-muted-foreground">
-                    Click to sign in
-                  </span>
-                )}
-              </div>
-              <RiExpandUpDownLine
-                className="ms-auto text-sidebar-foreground/50"
-                size={20}
-                aria-hidden="true"
-              />
+              {state !== "collapsed" && (
+                <>
+                  <div className="grid flex-1 text-left text-base leading-tight opacity-100 transition-opacity duration-200 ease-in-out">
+                    <span className="truncate font-medium" suppressHydrationWarning>
+                      {mounted ? (activeTeam?.name ?? "Select a User") : "Loading..."}
+                    </span>
+                    {!isUserSignedIn && activeTeam?.name === "Not signed in" && (
+                      <span className="text-xs text-muted-foreground">
+                        Click to sign in
+                      </span>
+                    )}
+                  </div>
+                  <RiExpandUpDownLine
+                    className="ms-auto text-sidebar-foreground/50 opacity-100 transition-opacity duration-200 ease-in-out"
+                    size={20}
+                    aria-hidden="true"
+                  />
+                </>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="dark w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-md z-50"
-            align="start"
-            side="bottom"
-            sideOffset={4}
+            className="dark w-[240px] rounded-md z-[60]"
+            align={state === "collapsed" ? "start" : "start"}
+            side={state === "collapsed" ? "right" : "bottom"}
+            sideOffset={state === "collapsed" ? 12 : 4}
+            alignOffset={state === "collapsed" ? 12 : 0}
           >
             <DropdownMenuLabel className="uppercase text-muted-foreground/70 text-xs">
               {isUserSignedIn ? "User" : "Authentication"}
@@ -116,8 +133,8 @@ export function TeamSwitcher({
                     {team.logo ? (
                       <img 
                         src={team.logo} 
-                        width={24} 
-                        height={24} 
+                        width={36} 
+                        height={36} 
                         alt={team.name}
                         className="w-full h-full object-cover"
                       />

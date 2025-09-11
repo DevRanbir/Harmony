@@ -146,3 +146,29 @@
 .cl-internal-p8bmz4 {
   box-shadow: none !important;
 }
+
+/* Sidebar smooth transitions */
+.sidebar {
+  transition: all 0.2s ease-in-out;
+}
+
+.sidebar[data-state="collapsed"] {
+  width: var(--sidebar-width-icon);
+}
+
+.sidebar[data-state="expanded"] {
+  width: var(--sidebar-width);
+}
+
+/* Smooth transitions for sidebar content */
+.sidebar .sidebar-menu-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.sidebar .sidebar-menu-button span {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.sidebar[data-state="collapsed"] .sidebar-menu-button span {
+  opacity: 0;
+}
