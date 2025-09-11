@@ -4,10 +4,12 @@ import { useAuth } from "@clerk/clerk-react";
 import { Badge } from "@/components/badge";
 import { Button } from "@/components/button";
 import { useRouter } from "next/navigation";
+import { useSidebar } from "@/components/sidebar";
 import { RiVipCrownLine, RiStarLine, RiGraduationCapLine, RiTeamLine, RiCodeLine } from "@remixicon/react";
 
 export function SubscriptionInfo() {
   const { has, isLoaded } = useAuth();
+  const { state } = useSidebar();
   const router = useRouter();
 
   if (!isLoaded) {
@@ -16,7 +18,9 @@ export function SubscriptionInfo() {
         <div className="bg-sidebar-accent/50 rounded-lg p-3 border border-sidebar-border">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-sidebar-foreground/20 animate-pulse rounded"></div>
-            <div className="w-16 h-4 bg-sidebar-foreground/20 animate-pulse rounded"></div>
+            {state !== "collapsed" && (
+              <div className="w-16 h-4 bg-sidebar-foreground/20 animate-pulse rounded"></div>
+            )}
           </div>
         </div>
       </div>
@@ -71,6 +75,17 @@ export function SubscriptionInfo() {
   }
 
   const Icon = currentPlan.icon;
+
+  // If collapsed, show minimal view with just icon and tooltip
+  if (state === "collapsed") {
+    return (
+      <div className="px-3 py-2">
+        <div className="bg-sidebar-accent/50 rounded-lg p-3 border border-sidebar-border flex items-center justify-center" title={currentPlan.name}>
+          <Icon size={20} className="text-sidebar-foreground/70" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-3 py-2">

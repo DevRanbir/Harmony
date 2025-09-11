@@ -29,6 +29,8 @@ export default function RootLayout({
         },
       }}
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInForceRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL}
+      signUpForceRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL}
     >
       <html lang="en" suppressHydrationWarning>
         <body className={`${fontSans.variable} font-sans antialiased`}>
@@ -45,8 +47,8 @@ export default function RootLayout({
             </BookmarksProvider>
             <PagePreloader />
           </AuthProvider>
-          {/* Global Clerk CAPTCHA container */}
-          <div id="clerk-captcha" style={{ position: 'absolute', left: '-9999px', visibility: 'hidden' }}></div>
+          {/* Clerk CAPTCHA container - prevent initialization errors */}
+          <div id="clerk-captcha" style={{ display: 'none' }}></div>
         </body>
       </html>
     </ClerkProvider>

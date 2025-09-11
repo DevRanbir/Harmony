@@ -64,6 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoaded, isSignedIn, userId, user, updateAuthState]);
 
+  // Listen for auth state changes more aggressively during SSO flow
+  useEffect(() => {
+    if (isLoaded) {
+      // Check auth state immediately when any auth-related value changes
+      const currentAuthState = !!isSignedIn && !!userId;
+      if (currentAuthState !== isAuthenticated) {
+        updateAuthState(currentAuthState, user);
+      }
+    }
+  }, [isLoaded, isSignedIn, userId, user, isAuthenticated, updateAuthState]);
+
   // Periodic auth state validation
   useEffect(() => {
     const checkAuthPeriodically = () => {

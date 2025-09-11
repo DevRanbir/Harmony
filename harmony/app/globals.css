@@ -124,6 +124,25 @@
   }
 }
 
+/* Sidebar specific z-index fixes */
+[data-sidebar] {
+  z-index: 40;
+}
+
+[data-sidebar] [data-state="open"] {
+  z-index: 50;
+}
+
+/* Tooltip z-index for collapsed sidebar */
+[data-tooltip-content] {
+  z-index: 60;
+}
+
+/* Dropdown menu z-index */
+[data-radix-popper-content-wrapper] {
+  z-index: 55;
+}
+
 .cl-internal-p8bmz4 {
   box-shadow: none !important;
 }

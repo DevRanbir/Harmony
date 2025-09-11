@@ -1,6 +1,6 @@
-// Middleware is disabled for static export
-// Client-side route protection is handled by ClientRouteGuard component
+// Middleware disabled - using client-side route protection instead
+// This prevents conflicts with Clerk authentication flow
 
 export const config = {
   matcher: [],
-}
+};

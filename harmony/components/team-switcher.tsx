@@ -17,6 +17,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/sidebar";
 import { RiExpandUpDownLine, RiAddLine, RiLogoutBoxLine, RiSettings3Line, RiVipCrownLine } from "@remixicon/react";
 
@@ -33,6 +34,7 @@ export function TeamSwitcher({
   const { openUserProfile, signOut, openSignUp } = useClerk();
   const { user, isLoaded } = useUser();
   const { isSignedIn } = useAuth();
+  const { state } = useSidebar();
   const router = useRouter();
 
   React.useEffect(() => {
@@ -59,6 +61,7 @@ export function TeamSwitcher({
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground gap-3 [&>svg]:size-auto"
+              tooltip={state === "collapsed" ? (mounted ? (activeTeam?.name ?? "Select a User") : "Loading...") : undefined}
             >
               <div className="flex aspect-square size-9 items-center justify-center rounded-md overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none">
                 {mounted && activeTeam && activeTeam.logo ? (
@@ -93,7 +96,7 @@ export function TeamSwitcher({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="dark w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-md"
+            className="dark w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-md z-50"
             align="start"
             side="bottom"
             sideOffset={4}

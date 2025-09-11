@@ -18,6 +18,11 @@ export function RouteGuard({ children, protectedRoutes = ['/dashboard', '/admin'
     // Don't do anything while loading
     if (isLoading) return;
 
+    // Skip protection for SSO callback and login routes
+    if (pathname === '/login/sso-callback' || pathname.startsWith('/login')) {
+      return;
+    }
+
     // Check if current route is protected
     const isProtectedRoute = protectedRoutes.some(route => {
       if (route.endsWith('*')) {
