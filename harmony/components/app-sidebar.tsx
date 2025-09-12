@@ -182,17 +182,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className={`group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>svg]:size-auto transition-all duration-200 ease-in-out ${
-                      state === "collapsed" 
-                        ? "justify-center p-0 w-10 h-10" 
-                        : ""
-                    }`}
+                    className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>svg]:size-auto"
                     isActive={isItemActive(item.url)}
                     tooltip={state === "collapsed" ? item.title : undefined}
                   >
-                    <Link href={item.url} prefetch={true} className={`${
-                      state === "collapsed" ? "flex items-center justify-center w-full h-full" : "flex items-center gap-3"
-                    }`}>
+                    <Link href={item.url} prefetch={true}>
                       {item.icon && (
                         <item.icon
                           className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-sidebar-foreground"
@@ -200,7 +194,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           aria-hidden="true"
                         />
                       )}
-                      {state !== "collapsed" && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -224,45 +218,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   {item.isToggle ? (
                     <SidebarMenuButton
-                      className={`group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto hover:bg-sidebar-accent transition-all duration-200 ease-in-out ${
-                        state === "collapsed" 
-                          ? "justify-center p-0 w-10 h-10" 
-                          : ""
-                      }`}
+                      className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto hover:bg-sidebar-accent"
                       onClick={toggleSidebar}
                       tooltip={state === "collapsed" ? "Toggle Sidebar" : undefined}
                     >
-                      <div className={`${state === "collapsed" ? "flex items-center justify-center w-full h-full" : "flex items-center gap-3"}`}>
-                        {state === "collapsed" ? (
-                          <RiMenuUnfoldLine
-                            className="text-sidebar-foreground/50"
-                            size={22}
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <RiMenuFoldLine
-                            className="text-sidebar-foreground/50"
-                            size={22}
-                            aria-hidden="true"
-                          />
-                        )}
-                        {state !== "collapsed" && <span>Toggle Sidebar</span>}
-                      </div>
+                      {state === "collapsed" ? (
+                        <RiMenuUnfoldLine
+                          className="text-sidebar-foreground/50"
+                          size={22}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <RiMenuFoldLine
+                          className="text-sidebar-foreground/50"
+                          size={22}
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span>Toggle Sidebar</span>
                     </SidebarMenuButton>
                   ) : (
                     <SidebarMenuButton
                       asChild
-                      className={`group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto transition-all duration-200 ease-in-out ${
-                        state === "collapsed" 
-                          ? "justify-center p-0 w-10 h-10" 
-                          : ""
-                      }`}
+                      className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto"
                       isActive={isItemActive(item.url)}
                       tooltip={state === "collapsed" ? item.title : undefined}
                     >
-                      <Link href={item.url} prefetch={true} className={`${
-                        state === "collapsed" ? "flex items-center justify-center w-full h-full" : "flex items-center gap-3"
-                      }`}>
+                      <Link href={item.url} prefetch={true}>
                         {item.icon && (
                           <item.icon
                             className="text-sidebar-foreground/50 group-data-[active=true]/menu-button:text-primary"
@@ -270,7 +252,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             aria-hidden="true"
                           />
                         )}
-                        {state !== "collapsed" && <span>{item.title}</span>}
+                        <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   )}

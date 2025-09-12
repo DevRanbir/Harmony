@@ -76,15 +76,12 @@ export function SubscriptionInfo() {
 
   const Icon = currentPlan.icon;
 
-  // If collapsed, show minimal view with plan text
+  // If collapsed, show minimal view with just icon and tooltip
   if (state === "collapsed") {
-    const planText = planKey === 'education' ? 'Edu' : planKey.charAt(0).toUpperCase() + planKey.slice(1);
     return (
       <div className="px-3 py-2">
-        <div className="bg-sidebar-accent/50 rounded-lg p-2 border border-sidebar-border flex items-center justify-center min-h-[40px]" title={currentPlan.name}>
-          <span className="text-[10px] font-bold text-sidebar-foreground/70 uppercase tracking-wider leading-none text-center">
-            {planText}
-          </span>
+        <div className="bg-sidebar-accent/50 rounded-lg p-3 border border-sidebar-border flex items-center justify-center" title={currentPlan.name}>
+          <Icon size={20} className="text-sidebar-foreground/70" />
         </div>
       </div>
     );

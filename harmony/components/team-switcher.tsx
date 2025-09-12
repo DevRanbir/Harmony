@@ -62,14 +62,14 @@ export function TeamSwitcher({
               size={state === "collapsed" ? "sm" : "lg"}
               className={`data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground [&>svg]:size-auto transition-all duration-200 ease-in-out ${
                 state === "collapsed" 
-                  ? "gap-0 justify-center w-10 h-10 p-0 flex items-center" 
+                  ? "gap-0 justify-center w-10 h-10 p-1 flex items-center" 
                   : "gap-3"
               }`}
               tooltip={state === "collapsed" ? (mounted ? (activeTeam?.name ?? "Select a User") : "Loading...") : undefined}
             >
               <div className={`flex items-center justify-center rounded-md overflow-hidden bg-sidebar-primary text-sidebar-primary-foreground relative after:rounded-[inherit] after:absolute after:inset-0 after:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] after:pointer-events-none transition-all duration-200 ease-in-out ${
                 state === "collapsed" 
-                  ? "w-8 h-8 min-w-8 min-h-8 mx-auto" 
+                  ? "w-8 h-8 min-w-8 min-h-8" 
                   : "aspect-square size-9"
               }`}>
                 {mounted && activeTeam && activeTeam.logo ? (
@@ -116,7 +116,7 @@ export function TeamSwitcher({
             align={state === "collapsed" ? "start" : "start"}
             side={state === "collapsed" ? "right" : "bottom"}
             sideOffset={state === "collapsed" ? 12 : 4}
-            alignOffset={state === "collapsed" ? 12 : 0}
+            alignOffset={state === "collapsed" ? -4 : 0}
           >
             <DropdownMenuLabel className="uppercase text-muted-foreground/70 text-xs">
               {isUserSignedIn ? "User" : "Authentication"}

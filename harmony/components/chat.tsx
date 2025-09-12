@@ -1,6 +1,7 @@
 "use client";
 
 import { SettingsPanelTrigger } from "@/components/settings-panel";
+import { SidebarToggle } from "@/components/sidebar-toggle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -87,17 +88,20 @@ export default function Chat() {
         {/* Header */}
         <div className="py-5 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
           <div className="flex items-center justify-between gap-2">
-            <Breadcrumb>
-              <BreadcrumbList className="sm:gap-1.5">
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Chat</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+            <div className="flex items-center gap-3">
+              <SidebarToggle />
+              <Breadcrumb>
+                <BreadcrumbList className="sm:gap-1.5">
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Chat</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
             <div className="flex items-center gap-1 -my-2 -me-2">
               <Button variant="ghost" className="px-2">
                 <RiShareLine
