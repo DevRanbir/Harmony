@@ -133,23 +133,41 @@
   z-index: 50;
 }
 
+/* Mobile sidebar higher z-index */
+[data-sidebar][data-mobile="true"] {
+  z-index: 60 !important;
+}
+
+/* Sheet overlay for mobile sidebar */
+[data-radix-dialog-overlay] {
+  z-index: 55 !important;
+  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+[data-radix-dialog-content] {
+  z-index: 60 !important;
+}
+
 /* Tooltip z-index for collapsed sidebar */
 [data-tooltip-content] {
-  z-index: 60;
+  z-index: 65;
 }
 
 /* Dropdown menu z-index */
 [data-radix-popper-content-wrapper] {
-  z-index: 55;
+  z-index: 70;
 }
 
 .cl-internal-p8bmz4 {
   box-shadow: none !important;
 }
 
-/* Sidebar smooth transitions */
+/* Enhanced sidebar smooth transitions */
 .sidebar {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0); /* Enable hardware acceleration */
 }
 
 .sidebar[data-state="collapsed"] {
@@ -162,13 +180,64 @@
 
 /* Smooth transitions for sidebar content */
 .sidebar .sidebar-menu-button {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar .sidebar-menu-button span {
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar[data-state="collapsed"] .sidebar-menu-button span {
   opacity: 0;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide animations for sidebar */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+/* Mobile sidebar animations */
+@media (max-width: 768px) {
+  [data-sidebar][data-mobile="true"] {
+    animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  [data-sidebar][data-mobile="true"][data-state="closed"] {
+    animation: slideOutLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Ensure smooth scrolling on mobile when sidebar is open */
+@media (max-width: 768px) {
+  html:has([data-sidebar][data-mobile="true"][data-state="open"]) {
+    overflow: hidden;
+  }
 }

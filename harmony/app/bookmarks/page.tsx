@@ -114,9 +114,9 @@ export default function BookmarksPage() {
   };
 
   return (
-    <ClientRouteGuard requireAuth={true}>
+    <ClientRouteGuard requireAuth={true} lightLoading={true}>
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar collapsible="hidden" />
         <SidebarInset className="bg-sidebar group/sidebar-inset">
           <div className="flex h-[calc(100svh)] bg-[hsl(240_5%_92.16%)] md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
             <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
@@ -124,17 +124,20 @@ export default function BookmarksPage() {
                 {/* Header */}
                 <div className="py-5 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
                   <div className="flex items-center justify-between gap-2">
-                    <Breadcrumb>
-                      <BreadcrumbList className="sm:gap-1.5">
-                        <BreadcrumbItem>
-                          <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                          <BreadcrumbPage>Bookmarks</BreadcrumbPage>
-                        </BreadcrumbItem>
-                      </BreadcrumbList>
-                    </Breadcrumb>
+                    <div className="flex items-center gap-3">
+                      <SidebarTrigger />
+                      <Breadcrumb>
+                        <BreadcrumbList className="sm:gap-1.5">
+                          <BreadcrumbItem>
+                            <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                          </BreadcrumbItem>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem>
+                            <BreadcrumbPage>Bookmarks</BreadcrumbPage>
+                          </BreadcrumbItem>
+                        </BreadcrumbList>
+                      </Breadcrumb>
+                    </div>
                     <div className="flex items-center gap-1 -my-2 -me-2">
                       <span className="text-sm text-muted-foreground/70 px-2">
                         {filteredAndSortedBookmarks.length} of {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}

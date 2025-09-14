@@ -66,7 +66,7 @@ export default function VerifyEmailPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar collapsible="hidden" />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <SidebarTrigger className="absolute top-4 left-4" />

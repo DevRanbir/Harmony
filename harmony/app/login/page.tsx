@@ -14,6 +14,15 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/breadcrumb";
+import { ScrollArea } from "@/components/scroll-area";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -26,11 +35,45 @@ export default function LoginPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar collapsible="hidden" />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <SidebarTrigger className="absolute top-4 left-4" />
-          <div className="w-full max-w-4xl">
+        <div className="flex h-[calc(100svh)] bg-[hsl(240_5%_92.16%)] md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
+          <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
+            <div className="h-full flex flex-col px-0 md:px-0 lg:px-0">
+              {/* Header */}
+              <div className="bg-white py-5 sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <SidebarTrigger />
+                    <Breadcrumb>
+                      <BreadcrumbList className="sm:gap-1.5">
+                        <BreadcrumbItem>
+                          <BreadcrumbLink href="/">Harmony</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                          <BreadcrumbPage>Sign In</BreadcrumbPage>
+                        </BreadcrumbItem>
+                      </BreadcrumbList>
+                    </Breadcrumb>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="relative grow flex items-center justify-center pb-8 overflow-hidden">
+                {/* Background GIF */}
+                <div className="absolute inset-0 z-0">
+                  <img 
+                    src="/1757835988118.gif" 
+                    alt="Background animation"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Overlay to ensure content readability */}
+                  <div className="absolute inset-0 backdrop-blur-sm shadow-xl border border-white/20"></div>
+                </div>
+                
+                <div className="w-full max-w-4xl relative z-10">{/* The content will continue here... */}
             {/* Error message */}
             {error && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -55,18 +98,18 @@ export default function LoginPage() {
               </div>
             )}
             <SignedOut>
-              <div className="bg-card border shadow-sm rounded-lg overflow-hidden">
+              <div className="rounded-lg overflow-hidden mt-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
-                  {/* Left side - Welcome and buttons */}
-                  <div className="bg-muted/50 p-8 flex flex-col justify-center">
+                    {/* Left side - Welcome and buttons */}
+                    <div className="p-8 flex flex-col justify-center">
                     <div className="max-w-sm mx-auto w-full">
                       <div className="mb-8 text-center lg:text-left">
-                        <h1 className="text-3xl font-bold text-foreground mb-4">
-                          Welcome to Harmony
-                        </h1>
-                        <p className="text-muted-foreground mb-8">
-                          Sign in to access your workspace and collaborate with your team.
-                        </p>
+                      <h1 className="text-3xl font-bold text-white mb-4">
+                        Welcome to <span className="text-[2em] text-black inline-block">Harmony</span>
+                      </h1>
+                      <p className="text-white mb-8">
+                        Sign in to access your workspace and collaborate with your team.
+                      </p>
                       </div>
 
                       {/* Action buttons */}
@@ -94,7 +137,7 @@ export default function LoginPage() {
                       </div>
 
                       <div className="text-center lg:text-left">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-white">
                           By signing in, you agree to our Terms of Service and Privacy Policy
                         </p>
                       </div>
@@ -102,7 +145,7 @@ export default function LoginPage() {
                   </div>
 
                   {/* Right side - Clerk forms */}
-                  <div className="p-8 flex items-center justify-center">
+                  <div className="p-3 flex items-center justify-center">
                     <div className="w-full max-w-sm">
                       {showSignUp ? (
                         <SignUp 
@@ -209,8 +252,11 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-      </div>
-    </SidebarInset>
-  </SidebarProvider>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

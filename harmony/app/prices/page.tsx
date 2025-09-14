@@ -23,23 +23,26 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar collapsible="hidden" />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
         <div className="min-h-screen bg-background">
           {/* Header */}
           <div className="py-5 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
             <div className="flex items-center justify-between gap-2 px-4 md:px-6 lg:px-8">
-              <Breadcrumb>
-                <BreadcrumbList className="sm:gap-1.5">
-                  <BreadcrumbItem>
-                    <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Pricing</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+              <div className="flex items-center gap-3">
+                <SidebarTrigger />
+                <Breadcrumb>
+                  <BreadcrumbList className="sm:gap-1.5">
+                    <BreadcrumbItem>
+                      <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>Pricing</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
             </div>
           </div>
 

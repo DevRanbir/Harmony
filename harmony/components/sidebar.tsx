@@ -23,7 +23,7 @@ import { RiSkipLeftLine, RiSkipRightLine } from "@remixicon/react";
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
-const SIDEBAR_WIDTH_MOBILE = "18rem";
+const SIDEBAR_WIDTH_MOBILE = "100%";
 const SIDEBAR_WIDTH_ICON = "5rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
@@ -81,6 +81,64 @@ function SidebarProvider({
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
+
+  // Handle swipe gestures on mobile
+  React.useEffect(() => {
+    if (!isMobile) return;
+
+    let startX = 0;
+    let startY = 0;
+    let isScrolling = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isScrolling = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!startX || !startY) return;
+
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const diffX = startX - currentX;
+      const diffY = startY - currentY;
+
+      // Determine if user is scrolling vertically
+      if (Math.abs(diffY) > Math.abs(diffX)) {
+        isScrolling = true;
+        return;
+      }
+
+      // If scrolling vertically, don't handle swipe
+      if (isScrolling) return;
+
+      // Swipe right to open (from left edge)
+      if (startX < 20 && diffX < -50 && !openMobile) {
+        setOpenMobile(true);
+      }
+      // Swipe left to close (when sidebar is open)
+      else if (diffX > 50 && openMobile) {
+        setOpenMobile(false);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      startX = 0;
+      startY = 0;
+      isScrolling = false;
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile, openMobile, setOpenMobile]);
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -146,9 +204,9 @@ function Sidebar({
 }: React.ComponentProps<"div"> & {
   side?: "left" | "right";
   variant?: "sidebar" | "floating" | "inset";
-  collapsible?: "offcanvas" | "icon" | "none";
+  collapsible?: "offcanvas" | "icon" | "none" | "hidden";
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, state, openMobile, setOpenMobile, open } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -164,6 +222,12 @@ function Sidebar({
     );
   }
 
+  if (collapsible === "hidden") {
+    if (!open) {
+      return null; // Completely hide the sidebar
+    }
+  }
+
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -171,7 +235,8 @@ function Sidebar({
           data-sidebar="sidebar"
           data-mobile="true"
           className={cn(
-            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+            "w-full h-full bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden border-none shadow-2xl",
+            "transition-transform duration-300 ease-in-out",
             className,
           )}
           style={
@@ -182,7 +247,21 @@ function Sidebar({
           side={side}
         >
           <SheetTitle className="hidden">Menu</SheetTitle>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-full w-full flex-col relative">
+            {children}
+            {/* Mobile close button */}
+            <div className="absolute top-4 right-4 z-50">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpenMobile(false)}
+                className="h-8 w-8 bg-sidebar-accent/50 hover:bg-sidebar-accent text-sidebar-foreground"
+              >
+                <RiSkipRightLine className="h-4 w-4" />
+                <span className="sr-only">Close sidebar</span>
+              </Button>
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -190,7 +269,10 @@ function Sidebar({
 
   return (
     <div
-      className="group peer hidden md:block text-sidebar-foreground"
+      className={cn(
+        "group peer text-sidebar-foreground transition-all duration-300 ease-in-out",
+        collapsible === "hidden" && !open ? "hidden" : "hidden md:block"
+      )}
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -200,6 +282,7 @@ function Sidebar({
         className={cn(
           "duration-300 relative h-svh w-(--sidebar-width) bg-transparent transition-[width] ease-in-out",
           "group-data-[collapsible=offcanvas]:w-0",
+          "group-data-[collapsible=hidden]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
             ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
@@ -208,10 +291,11 @@ function Sidebar({
       />
       <div
         className={cn(
-          "duration-300 fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] ease-in-out md:flex",
+          "duration-300 fixed inset-y-0 z-40 hidden h-svh w-(--sidebar-width) transition-[left,right,width,transform,opacity] ease-in-out md:flex",
+          "transform-gpu will-change-transform",
           side === "left"
-            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] group-data-[collapsible=hidden]:left-[calc(var(--sidebar-width)*-1)] group-data-[collapsible=hidden]:-translate-x-full group-data-[collapsible=hidden]:opacity-0"
+            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] group-data-[collapsible=hidden]:right-[calc(var(--sidebar-width)*-1)] group-data-[collapsible=hidden]:translate-x-full group-data-[collapsible=hidden]:opacity-0",
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
@@ -221,7 +305,7 @@ function Sidebar({
       >
         <div
           data-sidebar="sidebar"
-          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-md group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-md group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-lg transform-gpu transition-shadow duration-300"
         >
           {children}
         </div>
@@ -235,7 +319,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar, open } = useSidebar();
+  const { toggleSidebar, open, isMobile } = useSidebar();
 
   return (
     <Button
@@ -243,7 +327,8 @@ function SidebarTrigger({
       variant="ghost"
       size="icon"
       className={cn(
-        "text-muted-foreground/70 hover:text-foreground",
+        "text-muted-foreground/70 hover:text-foreground transition-all duration-200 ease-in-out",
+        "hover:bg-accent/50 active:scale-95",
         className,
       )}
       onClick={(event) => {
@@ -253,9 +338,17 @@ function SidebarTrigger({
       {...props}
     >
       {open ? (
-        <RiSkipLeftLine className="size-5.5" size={22} aria-hidden="true" />
+        <RiSkipLeftLine 
+          className="size-5.5 transition-transform duration-200 ease-in-out" 
+          size={22} 
+          aria-hidden="true" 
+        />
       ) : (
-        <RiSkipRightLine className="size-5.5" size={22} aria-hidden="true" />
+        <RiSkipRightLine 
+          className="size-5.5 transition-transform duration-200 ease-in-out" 
+          size={22} 
+          aria-hidden="true" 
+        />
       )}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
@@ -287,11 +380,17 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
 }
 
 function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
+  const { open, state, isMobile } = useSidebar();
+  
   return (
     <main
       className={cn(
-        "relative flex min-h-svh flex-1 flex-col bg-background",
+        "relative flex min-h-svh flex-1 flex-col bg-background transition-all duration-300 ease-in-out",
         "peer-data-[variant=inset]:min-h-[calc(100svh-(--spacing(4)))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm",
+        // When sidebar is completely hidden, remove any left margin
+        !open && "md:ml-0",
+        // On mobile, add overlay when sidebar is open
+        isMobile && open && "overflow-hidden",
         className,
       )}
       {...props}

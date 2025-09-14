@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar collapsible="hidden" />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
         <div className="min-h-screen bg-background">
           {/* Header with Sidebar Trigger */}

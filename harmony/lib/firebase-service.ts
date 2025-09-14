@@ -18,6 +18,35 @@ export interface BookmarkData {
   bookmarkedAt: number;
 }
 
+export interface Question {
+  id: string;
+  question: string;
+  description?: string;
+  category: string;
+  author: string;
+  authorEmail?: string;
+  timestamp: number;
+  answer?: string;
+  answeredBy?: string;
+  answeredAt?: number;
+  status: 'pending' | 'answered';
+  votes?: number;
+  votedBy?: string[]; // Array of user IDs who voted
+  isAnonymous?: boolean;
+}
+
+export interface PrivateQuestion {
+  id: string;
+  question: string;
+  description?: string;
+  category: string;
+  timestamp: number;
+  answer: string; // Always present, default "Yet to answer"
+  answeredBy?: string;
+  answeredAt?: number;
+  status: 'pending' | 'answered';
+}
+
 // Helper function to check if Firebase is available
 const isFirebaseAvailable = (): boolean => {
   return isFirebaseConfigured && database !== null;
@@ -664,4 +693,235 @@ export const hasExistingChats = async (username: string): Promise<boolean> => {
     console.error('Error checking existing chats:', error);
     return false;
   }
+};
+
+// ============================
+// QUESTION MANAGEMENT FUNCTIONS
+// ============================
+
+// Submit a public question
+export const submitPublicQuestion = async (questionData: {
+  question: string;
+  description?: string;
+  category: string;
+  author: string;
+  authorEmail?: string;
+  isAnonymous?: boolean;
+}): Promise<string> => {
+  if (!isFirebaseAvailable()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const questionsRef = ref(database!, 'FAQs');
+  const newQuestionRef = push(questionsRef);
+  
+  const question: Question = {
+    id: newQuestionRef.key!,
+    ...questionData,
+    timestamp: Date.now(),
+    status: 'pending',
+    votes: 0,
+    votedBy: [] // Initialize empty array for voters
+  };
+
+  await set(newQuestionRef, question);
+  return newQuestionRef.key!;
+};
+
+// Submit a private question
+export const submitPrivateQuestion = async (
+  username: string,
+  questionData: {
+    question: string;
+    description?: string;
+    category: string;
+  }
+): Promise<string> => {
+  if (!isFirebaseAvailable()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  const userQuestionsRef = ref(database!, `${username}/FAQ`);
+  const newQuestionRef = push(userQuestionsRef);
+  
+  const question: PrivateQuestion = {
+    id: newQuestionRef.key!,
+    ...questionData,
+    timestamp: Date.now(),
+    status: 'pending',
+    answer: 'Yet to answer' // Default answer
+  };
+
+  await set(newQuestionRef, question);
+  return newQuestionRef.key!;
+};
+
+// Get all public questions
+export const getPublicQuestions = async (): Promise<Question[]> => {
+  if (!isFirebaseAvailable()) {
+    return [];
+  }
+
+  try {
+    const questionsRef = ref(database!, 'FAQs');
+    const snapshot = await get(questionsRef);
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    const questionsData = snapshot.val();
+    return Object.keys(questionsData).map(key => ({
+      ...questionsData[key],
+      id: key
+    })).sort((a, b) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error('Error fetching public questions:', error);
+    return [];
+  }
+};
+
+// Get user's private questions
+export const getPrivateQuestions = async (username: string): Promise<PrivateQuestion[]> => {
+  if (!isFirebaseAvailable()) {
+    return [];
+  }
+
+  try {
+    const userQuestionsRef = ref(database!, `${username}/queries`);
+    const snapshot = await get(userQuestionsRef);
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    const questionsData = snapshot.val();
+    return Object.keys(questionsData).map(key => ({
+      ...questionsData[key],
+      id: key
+    })).sort((a, b) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error('Error fetching private questions:', error);
+    return [];
+  }
+};
+
+// Check if user has voted on a question
+export const hasUserVoted = async (questionId: string, userId: string): Promise<boolean> => {
+  if (!isFirebaseAvailable()) {
+    return false;
+  }
+
+  try {
+    const votedByRef = ref(database!, `FAQs/${questionId}/votedBy`);
+    const snapshot = await get(votedByRef);
+    
+    if (snapshot.exists()) {
+      const votedBy = snapshot.val() || [];
+      return votedBy.includes(userId);
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking if user voted:', error);
+    return false;
+  }
+};
+
+// Vote on a public question
+export const voteOnQuestion = async (questionId: string, userId: string, increment: boolean = true): Promise<void> => {
+  if (!isFirebaseAvailable()) {
+    throw new Error('Firebase is not configured');
+  }
+
+  try {
+    const questionRef = ref(database!, `FAQs/${questionId}`);
+    const snapshot = await get(questionRef);
+    
+    if (snapshot.exists()) {
+      const questionData = snapshot.val();
+      const currentVotes = questionData.votes || 0;
+      const votedBy = questionData.votedBy || [];
+      
+      // Check if user already voted
+      const userAlreadyVoted = votedBy.includes(userId);
+      
+      if (increment && userAlreadyVoted) {
+        throw new Error('User has already voted on this question');
+      }
+      
+      let newVotes = currentVotes;
+      let newVotedBy = [...votedBy];
+      
+      if (increment && !userAlreadyVoted) {
+        newVotes = currentVotes + 1;
+        newVotedBy.push(userId);
+      } else if (!increment && userAlreadyVoted) {
+        newVotes = Math.max(0, currentVotes - 1);
+        newVotedBy = votedBy.filter((id: string) => id !== userId);
+      }
+      
+      await set(ref(database!, `FAQs/${questionId}/votes`), newVotes);
+      await set(ref(database!, `FAQs/${questionId}/votedBy`), newVotedBy);
+    }
+  } catch (error) {
+    console.error('Error voting on question:', error);
+    throw error;
+  }
+};
+
+// Listen to public questions in real-time
+export const listenToPublicQuestions = (callback: (questions: Question[]) => void): () => void => {
+  if (!isFirebaseAvailable()) {
+    callback([]);
+    return () => {};
+  }
+
+  const questionsRef = ref(database!, 'FAQs');
+  
+  const unsubscribe = onValue(questionsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const questionsData = snapshot.val();
+      const questions = Object.keys(questionsData).map(key => ({
+        ...questionsData[key],
+        id: key
+      })).sort((a, b) => b.timestamp - a.timestamp);
+      callback(questions);
+    } else {
+      callback([]);
+    }
+  }, (error) => {
+    console.error('Error listening to public questions:', error);
+    callback([]);
+  });
+
+  return () => off(questionsRef, 'value', unsubscribe);
+};
+
+// Listen to user's private questions in real-time
+export const listenToPrivateQuestions = (username: string, callback: (questions: PrivateQuestion[]) => void): () => void => {
+  if (!isFirebaseAvailable()) {
+    callback([]);
+    return () => {};
+  }
+
+  const userQuestionsRef = ref(database!, `${username}/FAQ`);
+  
+  const unsubscribe = onValue(userQuestionsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const questionsData = snapshot.val();
+      const questions = Object.keys(questionsData).map(key => ({
+        ...questionsData[key],
+        id: key
+      })).sort((a, b) => b.timestamp - a.timestamp);
+      callback(questions);
+    } else {
+      callback([]);
+    }
+  }, (error) => {
+    console.error('Error listening to private questions:', error);
+    callback([]);
+  });
+
+  return () => off(userQuestionsRef, 'value', unsubscribe);
 };

@@ -249,7 +249,7 @@ export function ChatHistorySection() {
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction 
                             onClick={() => handleDelete(chat.date)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-destructive hover:bg-destructive/90 text-white"
                           >
                             Delete
                           </AlertDialogAction>

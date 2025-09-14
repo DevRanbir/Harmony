@@ -8,6 +8,7 @@ import { useAuthContext } from "@/contexts/auth-context";
 
 import { TeamSwitcher } from "@/components/team-switcher";
 import { SubscriptionInfo } from "@/components/subscription-info";
+import { Button } from "@/components/button";
 import {
   Sidebar,
   SidebarContent,
@@ -27,14 +28,15 @@ import {
   RiBardLine,
   RiMickeyLine,
   RiMicLine,
-  RiCheckDoubleLine,
-  RiBracesLine,
-  RiPlanetLine,
+  RiUser5Line,
+  RiMoneyRupeeCircleLine,
+  RiChatSmileLine,
   RiSeedlingLine,
   RiSettings3Line,
   RiBookmarkLine,
   RiMenuFoldLine,
   RiMenuUnfoldLine,
+  RiGlobeLine,
 } from "@remixicon/react";
 
 // Navigation data
@@ -47,7 +49,7 @@ const navData = {
         {
           title: "Chat",
           url: "/dashboard",
-          icon: RiChat1Line,
+          icon: RiChatSmileLine,
         },
         {
           title: "Bookmarks",
@@ -55,19 +57,19 @@ const navData = {
           icon: RiBookmarkLine,
         },
         {
-          title: "Gallery",
-          url: "#",
-          icon: RiBardLine,
+          title: "Map",
+          url: "/map",
+          icon: RiGlobeLine,
         },
         {
           title: "Prices",
           url: "/prices",
-          icon: RiMickeyLine,
+          icon: RiMoneyRupeeCircleLine,
         },
         {
           title: "Metrics",
           url: "/user/data",
-          icon: RiCheckDoubleLine,
+          icon: RiUser5Line,
         }
       ],
     },
@@ -77,7 +79,7 @@ const navData = {
       items: [
         {
           title: "Help Centre",
-          url: "#",
+          url: "/help",
           icon: RiSeedlingLine,
         },
         {
@@ -100,7 +102,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { user } = useUser();
   const { isAuthenticated, isLoading } = useAuthContext();
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const [mounted, setMounted] = React.useState(false);
   
   React.useEffect(() => {
@@ -138,11 +140,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Filter navigation items based on authentication status
   const getFilteredNavItems = (items: typeof navData.navMain[0]["items"]) => {
     if (!isAuthenticated || !user) {
-      // If user is not signed in, exclude Metrics and Gallery
-      return items.filter(item => 
-        item.title !== "Metrics" && 
-        item.title !== "Gallery"
-      );
+      // If user is not signed in, show Get Started instead of Chat, and exclude other auth-required items
+      const filteredItems = items
+        .filter(item => 
+          item.title !== "Metrics" && 
+          item.title !== "Map" &&
+          item.title !== "Bookmarks"
+        )
+        .map(item => {
+          // Replace Chat with Get Started for non-authenticated users
+          if (item.title === "Chat") {
+            return {
+              ...item,
+              title: "Get Started",
+              url: "/login"
+            };
+          }
+          return item;
+        });
+
+      // Add Harmony button at the beginning for non-signed in users
+      return [
+        {
+          title: "Harmony",
+          url: "/",
+          icon: RiChat1Line, // Using chat icon as a placeholder, you can change this
+        },
+        ...filteredItems
+      ];
+    }
+    // If user is signed in, show all items
+    return items;
+  };
+
+  // Filter secondary navigation items (More section)
+  const getFilteredSecondaryItems = (items: typeof navData.navMain[1]["items"]) => {
+    if (!isAuthenticated || !user) {
+      // If user is not signed in, exclude Settings
+      return items.filter(item => item.title !== "Settings");
     }
     // If user is signed in, show all items
     return items;
@@ -150,8 +185,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   
   // Function to check if an item is active based on current path
   const isItemActive = (itemUrl: string) => {
+    if (itemUrl === "/") {
+      return pathname === "/";
+    }
     if (itemUrl === "/dashboard") {
-      return pathname === "/dashboard" || pathname === "/";
+      return pathname === "/dashboard";
+    }
+    if (itemUrl === "/login") {
+      return pathname === "/login";
     }
     if (itemUrl === "/user/data") {
       return pathname.includes("/data");
@@ -162,11 +203,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (itemUrl === "/bookmarks") {
       return pathname === "/bookmarks";
     }
+    if (itemUrl === "/map") {
+      return pathname === "/map";
+    }
     return pathname === itemUrl;
   };
 
   return (
-    <Sidebar {...props} className="dark !border-none z-50" collapsible="icon">
+    <Sidebar {...props} className="dark !border-none z-50">
+      {/* Mobile close button */}
+      {isMobile && (
+        <div className="absolute top-4 right-4 z-50 md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setOpenMobile(false)}
+            className="h-8 w-8 bg-sidebar-accent/50 hover:bg-sidebar-accent text-sidebar-foreground rounded-full shadow-lg"
+          >
+            <RiMenuFoldLine className="h-4 w-4" />
+            <span className="sr-only">Close sidebar</span>
+          </Button>
+        </div>
+      )}
+      
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
@@ -182,7 +241,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>svg]:size-auto"
+                    className="group/menu-button font-medium gap-3 h-9 rounded-md data-[active=true]:hover:bg-transparent data-[active=true]:bg-gradient-to-b data-[active=true]:from-sidebar-primary data-[active=true]:to-sidebar-primary/70 data-[active=true]:shadow-[0_1px_2px_0_rgb(0_0_0/.05),inset_0_1px_0_0_rgb(255_255_255/.12)] [&>svg]:size-auto transition-all duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]"
                     isActive={isItemActive(item.url)}
                     tooltip={state === "collapsed" ? item.title : undefined}
                   >
@@ -204,8 +263,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        {/* Subscription Info */}
-        <SubscriptionInfo />
+        {/* Subscription Info - only show when user is signed in */}
+        {isAuthenticated && user && <SubscriptionInfo />}
         
         {/* Secondary Navigation */}
         <SidebarGroup>
@@ -214,11 +273,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupLabel>
           <SidebarGroupContent className="px-2">
             <SidebarMenu>
-              {data.navMain[1]?.items.map((item) => (
+              {getFilteredSecondaryItems(data.navMain[1]?.items || []).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.isToggle ? (
                     <SidebarMenuButton
-                      className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto hover:bg-sidebar-accent"
+                      className="group/menu-button font-medium gap-3 h-9 rounded-md hover:bg-sidebar-accent [&>svg]:size-auto transition-all duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]"
                       onClick={toggleSidebar}
                       tooltip={state === "collapsed" ? "Toggle Sidebar" : undefined}
                     >
@@ -240,7 +299,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   ) : (
                     <SidebarMenuButton
                       asChild
-                      className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto"
+                      className="group/menu-button font-medium gap-3 h-9 rounded-md [&>svg]:size-auto transition-all duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98]"
                       isActive={isItemActive(item.url)}
                       tooltip={state === "collapsed" ? item.title : undefined}
                     >

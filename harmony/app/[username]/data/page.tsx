@@ -18,6 +18,8 @@ import {
 } from "@/components/breadcrumb";
 import { ScrollArea } from "@/components/scroll-area";
 import { ClientRouteGuard } from "@/components/client-route-guard";
+import { Badge } from "@/components/badge";
+import { Button } from "@/components/button";
 import { 
   getChatHistory, 
   getBookmarks, 
@@ -27,6 +29,21 @@ import {
   type BookmarkData 
 } from "@/lib/firebase-service";
 import { formatDistanceToNow } from "date-fns";
+import {
+  RiBarChartBoxLine,
+  RiMessageLine,
+  RiBookmarkLine,
+  RiCalendarLine,
+  RiLineChartLine,
+  RiUserLine,
+  RiMailLine,
+  RiPhoneLine,
+  RiTimeLine,
+  RiStarLine,
+  RiArrowRightUpLine,
+  RiChatSmile3Line,
+  RiHeartLine,
+} from "@remixicon/react";
 
 interface PageProps {
   params: Promise<{
@@ -155,9 +172,9 @@ export default function MetricsPage({ params }: PageProps) {
   }
 
   return (
-    <ClientRouteGuard requireAuth={true}>
+    <ClientRouteGuard requireAuth={true} lightLoading={true}>
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar collapsible="hidden" />
         <SidebarInset className="bg-sidebar group/sidebar-inset">
           <div className="flex h-[calc(100svh)] bg-[hsl(240_5%_92.16%)] md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
             <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
@@ -165,248 +182,227 @@ export default function MetricsPage({ params }: PageProps) {
                 {/* Header */}
                 <div className="py-5 bg-background sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
                   <div className="flex items-center justify-between gap-2">
-                    <Breadcrumb>
-                      <BreadcrumbList className="sm:gap-1.5">
-                        <BreadcrumbItem>
-                          <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                          <BreadcrumbLink href="#">{username}</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                          <BreadcrumbPage>Analytics</BreadcrumbPage>
-                        </BreadcrumbItem>
-                      </BreadcrumbList>
-                    </Breadcrumb>
-                    <div className="flex items-center gap-1 -my-2 -me-2">
-                      <span className="text-sm text-muted-foreground/70 px-2">
+                    <div className="flex items-center gap-3">
+                      <SidebarTrigger />
+                      <Breadcrumb>
+                        <BreadcrumbList className="sm:gap-1.5">
+                          <BreadcrumbItem>
+                            <BreadcrumbLink href="/dashboard">Harmony</BreadcrumbLink>
+                          </BreadcrumbItem>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem>
+                            <BreadcrumbLink href="#">{username}</BreadcrumbLink>
+                          </BreadcrumbItem>
+                          <BreadcrumbSeparator />
+                          <BreadcrumbItem>
+                            <BreadcrumbPage>Analytics</BreadcrumbPage>
+                          </BreadcrumbItem>
+                        </BreadcrumbList>
+                      </Breadcrumb>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="px-3 py-1">
+                        <RiStarLine className="mr-1.5 h-3 w-3" />
                         {analytics?.totalDays || 0} active days
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="relative grow">
-                  <div className="max-w-7xl mx-auto mt-4 space-y-6">
-                    {/* User Profile Section */}
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                      <h1 className="text-2xl font-bold text-gray-900 mb-6">User Profile & Analytics</h1>
-                      
-                      <div className="flex items-start gap-6">
-                        <div className="flex-shrink-0">
-                          {user?.imageUrl ? (
-                            <img
-                              src={user.imageUrl}
-                              alt={user.fullName || "User"}
-                              className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                            />
-                          ) : (
-                            <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold border-2 border-gray-200">
-                              {user.fullName?.charAt(0) || user.firstName?.charAt(0) || "U"}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                                {user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Anonymous User"}
-                              </h2>
-                              <p className="text-gray-600 mb-4">
-                                {user?.emailAddresses[0]?.emailAddress}
-                              </p>
-                              
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">User ID:</span>
-                                  <span className="text-gray-900 font-mono text-xs">{user?.id}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Member since:</span>
-                                  <span className="text-gray-900">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Last active:</span>
-                                  <span className="text-gray-900">
-                                    {user?.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString() : "N/A"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <h3 className="font-medium text-gray-900 mb-3">Contact Information</h3>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Primary Email:</span>
-                                  <span className="text-gray-900">{user?.emailAddresses[0]?.emailAddress}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Phone:</span>
-                                  <span className="text-gray-900">{user?.phoneNumbers[0]?.phoneNumber || "Not provided"}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Username:</span>
-                                  <span className="text-gray-900">{username}</span>
-                                </div>
-                              </div>
-                              
-                              <div className="mt-4 pt-4 border-t">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <span className="text-sm text-gray-600">Active Account</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Analytics Dashboard Header */}
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                        Analytics Dashboard
-                      </h2>
-                      <p className="text-gray-600">
-                        Welcome back, {user?.firstName || user?.fullName || "User"}! Here's your usage overview.
+                <div className="relative grow pb-8">
+                  <div className="space-y-6 mt-4">
+                    {/* Welcome Section */}
+                    <div className="flex flex-col space-y-2">
+                      <h1 className="text-2xl font-semibold tracking-tight">
+                        Welcome back, {user?.firstName || user?.fullName?.split(' ')[0] || "User"}
+                      </h1>
+                      <p className="text-muted-foreground">
+                        Here's an overview of your activity on Harmony
                       </p>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                      <div className="bg-white rounded-lg p-6 shadow-sm border">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Total Chats</p>
-                            <p className="text-2xl font-bold text-gray-900">{analytics?.totalChats || 0}</p>
+                    {/* User Profile Card */}
+                    <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                      <div className="p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                          <div className="flex-shrink-0">
+                            {user?.imageUrl ? (
+                              <img
+                                src={user.imageUrl}
+                                alt={user.fullName || "User"}
+                                className="w-16 h-16 rounded-full object-cover border-2 border-border/50"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-semibold border-2 border-border/50">
+                                {user?.fullName?.charAt(0) || user?.firstName?.charAt(0) || "U"}
+                              </div>
+                            )}
                           </div>
-                          <div className="p-3 bg-blue-100 rounded-lg">
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
+                          
+                          <div className="flex-1 space-y-4">
+                            <div>
+                              <h2 className="text-xl font-semibold">
+                                {user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Anonymous User"}
+                              </h2>
+                              <p className="text-muted-foreground text-sm">
+                                @{username} • Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                              </p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                              <div className="flex items-center gap-2">
+                                <RiMailLine className="h-4 w-4 text-muted-foreground/70" />
+                                <span className="text-muted-foreground">{user?.emailAddresses[0]?.emailAddress}</span>
+                              </div>
+                              {user?.phoneNumbers[0]?.phoneNumber && (
+                                <div className="flex items-center gap-2">
+                                  <RiPhoneLine className="h-4 w-4 text-muted-foreground/70" />
+                                  <span className="text-muted-foreground">{user.phoneNumbers[0].phoneNumber}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <RiTimeLine className="h-4 w-4 text-muted-foreground/70" />
+                                <span className="text-muted-foreground">
+                                  Last active: {user?.lastSignInAt ? formatDistanceToNow(new Date(user.lastSignInAt), { addSuffix: true }) : "N/A"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-sm text-muted-foreground">Active Account</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="mt-4">
-                          <span className="text-gray-600 text-sm">Chat sessions created</span>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg p-6 shadow-sm border">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Total Messages</p>
-                            <p className="text-2xl font-bold text-gray-900">{analytics?.totalMessages || 0}</p>
-                          </div>
-                          <div className="p-3 bg-green-100 rounded-lg">
-                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <span className="text-gray-600 text-sm">Messages exchanged</span>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg p-6 shadow-sm border">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Bookmarks</p>
-                            <p className="text-2xl font-bold text-gray-900">{analytics?.totalBookmarks || 0}</p>
-                          </div>
-                          <div className="p-3 bg-yellow-100 rounded-lg">
-                            <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <span className="text-gray-600 text-sm">Messages saved</span>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg p-6 shadow-sm border">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Avg Messages/Day</p>
-                            <p className="text-2xl font-bold text-gray-900">{analytics?.averageMessagesPerDay || 0}</p>
-                          </div>
-                          <div className="p-3 bg-purple-100 rounded-lg">
-                            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <span className="text-gray-600 text-sm">Daily usage rate</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Recent Activity Table */}
-                    <div className="bg-white rounded-lg shadow-sm border">
-                      <div className="p-6 border-b">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          Recent Activity
-                        </h3>
+                    {/* Analytics Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-card rounded-lg border p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Total Chats</p>
+                            <p className="text-2xl font-bold">{analytics?.totalChats || 0}</p>
+                            <p className="text-xs text-muted-foreground">Chat sessions</p>
+                          </div>
+                          <div className="p-3 bg-blue-500/10 rounded-lg">
+                            <RiChatSmile3Line className="h-6 w-6 text-blue-500" />
+                          </div>
+                        </div>
                       </div>
-                      <div className="overflow-x-auto">
+
+                      <div className="bg-card rounded-lg border p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Messages</p>
+                            <p className="text-2xl font-bold">{analytics?.totalMessages || 0}</p>
+                            <p className="text-xs text-muted-foreground">Messages sent</p>
+                          </div>
+                          <div className="p-3 bg-green-500/10 rounded-lg">
+                            <RiMessageLine className="h-6 w-6 text-green-500" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-card rounded-lg border p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Bookmarks</p>
+                            <p className="text-2xl font-bold">{analytics?.totalBookmarks || 0}</p>
+                            <p className="text-xs text-muted-foreground">Saved messages</p>
+                          </div>
+                          <div className="p-3 bg-yellow-500/10 rounded-lg">
+                            <RiBookmarkLine className="h-6 w-6 text-yellow-500" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-card rounded-lg border p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Daily Average</p>
+                            <p className="text-2xl font-bold">{analytics?.averageMessagesPerDay || 0}</p>
+                            <p className="text-xs text-muted-foreground">Messages per day</p>
+                          </div>
+                          <div className="p-3 bg-purple-500/10 rounded-lg">
+                            <RiLineChartLine className="h-6 w-6 text-purple-500" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Activity Feed */}
+                    <div className="bg-card rounded-xl border shadow-sm">
+                      <div className="p-6 border-b border-border/50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold">Recent Activity</h3>
+                            <p className="text-sm text-muted-foreground">Your latest interactions with Harmony</p>
+                          </div>
+                          <RiTimeLine className="h-5 w-5 text-muted-foreground/70" />
+                        </div>
+                      </div>
+                      
+                      <div className="p-6">
                         {analytics?.recentActivity && analytics.recentActivity.length > 0 ? (
-                          <table className="w-full">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Event
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Details
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Time
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Status
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {analytics.recentActivity.map((activity, index) => (
-                                <tr key={index}>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {activity.event}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {activity.details}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {formatDistanceToNow(activity.time, { addSuffix: true })}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                      Completed
+                          <div className="space-y-4">
+                            {analytics.recentActivity.slice(0, 8).map((activity, index) => (
+                              <div key={index} className="flex items-start gap-4 pb-4 last:pb-0 border-b last:border-b-0 border-border/30">
+                                <div className="flex-shrink-0 mt-1">
+                                  <div className={`p-2 rounded-lg ${
+                                    activity.event === 'Chat Session' 
+                                      ? 'bg-blue-500/10' 
+                                      : 'bg-yellow-500/10'
+                                  }`}>
+                                    {activity.event === 'Chat Session' ? (
+                                      <RiChatSmile3Line className={`h-4 w-4 ${
+                                        activity.event === 'Chat Session' 
+                                          ? 'text-blue-500' 
+                                          : 'text-yellow-500'
+                                      }`} />
+                                    ) : (
+                                      <RiBookmarkLine className={`h-4 w-4 ${
+                                        activity.event === 'Chat Session' 
+                                          ? 'text-blue-500' 
+                                          : 'text-yellow-500'
+                                      }`} />
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-medium">{activity.event}</p>
+                                    <span className="text-xs text-muted-foreground flex-shrink-0">
+                                      {formatDistanceToNow(activity.time, { addSuffix: true })}
                                     </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1 break-words">
+                                    {activity.details}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <div className="p-6 text-center text-gray-500">
-                            No recent activity found. Start chatting to see your activity here!
+                          <div className="text-center py-12">
+                            <div className="mx-auto w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mb-4">
+                              <RiHeartLine className="h-6 w-6 text-muted-foreground/70" />
+                            </div>
+                            <h4 className="text-sm font-medium mb-2">No activity yet</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Start chatting to see your activity timeline here!
+                            </p>
+                            <Button className="mt-4" size="sm">
+                              <RiArrowRightUpLine className="mr-2 h-4 w-4" />
+                              Start Chatting
+                            </Button>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Footer spacing */}
-                <div className="pb-8" />
               </div>
             </ScrollArea>
           </div>
