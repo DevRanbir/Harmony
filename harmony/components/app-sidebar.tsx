@@ -84,7 +84,7 @@ const navData = {
         },
         {
           title: "Settings",
-          url: "#",
+          url: "/settings",
           icon: RiSettings3Line,
         },
         {
@@ -205,6 +205,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
     if (itemUrl === "/map") {
       return pathname === "/map";
+    }
+    if (itemUrl === "/settings") {
+      return pathname === "/settings";
     }
     return pathname === itemUrl;
   };

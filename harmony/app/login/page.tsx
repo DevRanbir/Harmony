@@ -41,7 +41,7 @@ export default function LoginPage() {
           <ScrollArea className="flex-1 [&>div>div]:h-full w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background">
             <div className="h-full flex flex-col px-0 md:px-0 lg:px-0">
               {/* Header */}
-              <div className="bg-white py-5 sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
+              <div className="bg-white py-5 sticky top-0 z-10 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06] dark:bg-sidebar dark:before:from-white/[0.06] dark:before:via-white/10 dark:before:to-white/[0.06]">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <SidebarTrigger />

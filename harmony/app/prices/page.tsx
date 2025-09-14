@@ -34,7 +34,7 @@ export default function PricingPage() {
                 <Breadcrumb>
                   <BreadcrumbList className="sm:gap-1.5">
                     <BreadcrumbItem>
-                      <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                      <BreadcrumbLink href="/">Harmony</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>

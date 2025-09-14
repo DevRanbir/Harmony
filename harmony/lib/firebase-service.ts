@@ -925,3 +925,153 @@ export const listenToPrivateQuestions = (username: string, callback: (questions:
 
   return () => off(userQuestionsRef, 'value', unsubscribe);
 };
+
+// Settings Management
+export interface UserSettings {
+  theme?: 'light' | 'dark' | 'system';
+  notifications?: {
+    email?: {
+      securityAlerts?: boolean;
+      productUpdates?: boolean;
+    };
+    browser?: {
+      enabled?: boolean;
+      permission?: 'default' | 'granted' | 'denied';
+    };
+  };
+  privacy?: {
+    dataProcessing?: boolean;
+    analytics?: boolean;
+  };
+  appearance?: {
+    animationEffects?: boolean;
+  };
+}
+
+export const saveUserSettings = async (username: string, settings: UserSettings): Promise<boolean> => {
+  try {
+    if (!isFirebaseAvailable() || !database) {
+      // Save to localStorage as fallback
+      const key = `harmony_settings_${username}`;
+      localStorage.setItem(key, JSON.stringify(settings));
+      return true;
+    }
+
+    const settingsRef = ref(database, `${username}/settings`);
+    await set(settingsRef, settings);
+    return true;
+  } catch (error) {
+    console.error('Error saving user settings:', error);
+    return false;
+  }
+};
+
+export const getUserSettings = async (username: string): Promise<UserSettings> => {
+  try {
+    if (!isFirebaseAvailable() || !database) {
+      // Get from localStorage as fallback
+      const key = `harmony_settings_${username}`;
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : {};
+    }
+
+    const settingsRef = ref(database, `${username}/settings`);
+    const snapshot = await get(settingsRef);
+    
+    if (snapshot.exists()) {
+      return snapshot.val();
+    }
+    
+    return {};
+  } catch (error) {
+    console.error('Error getting user settings:', error);
+    return {};
+  }
+};
+
+export const updateUserSetting = async (username: string, settingPath: string, value: any): Promise<boolean> => {
+  try {
+    if (!isFirebaseAvailable() || !database) {
+      // Update localStorage as fallback
+      const key = `harmony_settings_${username}`;
+      const stored = localStorage.getItem(key);
+      const settings = stored ? JSON.parse(stored) : {};
+      
+      // Set nested property
+      const pathParts = settingPath.split('.');
+      let current = settings;
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        if (!current[pathParts[i]]) {
+          current[pathParts[i]] = {};
+        }
+        current = current[pathParts[i]];
+      }
+      current[pathParts[pathParts.length - 1]] = value;
+      
+      localStorage.setItem(key, JSON.stringify(settings));
+      return true;
+    }
+
+    const settingRef = ref(database, `${username}/settings/${settingPath.replace(/\./g, '/')}`);
+    await set(settingRef, value);
+    return true;
+  } catch (error) {
+    console.error('Error updating user setting:', error);
+    return false;
+  }
+};
+
+// Data Management
+export const deleteUserData = async (username: string, dataType: 'chats' | 'bookmarks' | 'faqs' | 'all'): Promise<boolean> => {
+  try {
+    if (!isFirebaseAvailable() || !database) {
+      // Delete from localStorage as fallback
+      if (dataType === 'chats' || dataType === 'all') {
+        const keys = Object.keys(localStorage).filter(key => key.startsWith(`harmony_chat_${username}`));
+        keys.forEach(key => localStorage.removeItem(key));
+        localStorage.removeItem(`harmony_history_${username}`);
+      }
+      
+      if (dataType === 'bookmarks' || dataType === 'all') {
+        localStorage.removeItem(`harmony_bookmark_${username}`);
+      }
+      
+      if (dataType === 'faqs' || dataType === 'all') {
+        localStorage.removeItem(`harmony_questions_${username}`);
+      }
+      
+      if (dataType === 'all') {
+        localStorage.removeItem(`harmony_settings_${username}`);
+      }
+      
+      return true;
+    }
+
+    if (dataType === 'chats' || dataType === 'all') {
+      const chatsRef = ref(database, `chats/${username}`);
+      const historyRef = ref(database, `chatHistory/${username}`);
+      await remove(chatsRef);
+      await remove(historyRef);
+    }
+    
+    if (dataType === 'bookmarks' || dataType === 'all') {
+      const bookmarksRef = ref(database, `bookmarks/${username}`);
+      await remove(bookmarksRef);
+    }
+    
+    if (dataType === 'faqs' || dataType === 'all') {
+      const privateQuestionsRef = ref(database, `privateQuestions/${username}`);
+      await remove(privateQuestionsRef);
+    }
+    
+    if (dataType === 'all') {
+      const settingsRef = ref(database, `${username}/settings`);
+      await remove(settingsRef);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error deleting ${dataType} data:`, error);
+    return false;
+  }
+};

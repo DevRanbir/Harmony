@@ -187,7 +187,7 @@ export default function MetricsPage({ params }: PageProps) {
                       <Breadcrumb>
                         <BreadcrumbList className="sm:gap-1.5">
                           <BreadcrumbItem>
-                            <BreadcrumbLink href="/dashboard">Harmony</BreadcrumbLink>
+                            <BreadcrumbLink href="/">Harmony</BreadcrumbLink>
                           </BreadcrumbItem>
                           <BreadcrumbSeparator />
                           <BreadcrumbItem>

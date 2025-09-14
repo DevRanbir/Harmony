@@ -138,7 +138,7 @@ function MessageActions({
   };
 
   return (
-    <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px">
+    <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px dark:bg-sidebar dark:border-white/[0.08]">
       <TooltipProvider delayDuration={0}>
         <ActionButton 
           icon={bookmarked ? <RiBookmarkFill size={16} /> : <RiBookmarkLine size={16} />} 

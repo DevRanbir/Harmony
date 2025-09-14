@@ -74,19 +74,19 @@ const SettingsPanelContent = () => {
       <div className="py-5">
         <div className="flex items-center gap-2">
           <RiQuillPenAiLine
-            className="text-muted-foreground/70"
+            className="text-muted-foreground"
             size={20}
             aria-hidden="true"
           />
-          <h2 className="text-sm font-medium">My preferences</h2>
+          <h2 className="text-sm font-medium text-foreground">My preferences</h2>
         </div>
       </div>
 
       {/* Sidebar content */}
       <div className="-mt-px">
         {/* Content group */}
-        <div className="py-5 relative before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
-          <h3 className="text-xs font-medium uppercase text-muted-foreground/80 mb-4">
+        <div className="py-5 relative before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-border">
+          <h3 className="text-xs font-medium uppercase text-muted-foreground mb-4">
             Chat presets
           </h3>
           <div className="space-y-3">
@@ -99,7 +99,7 @@ const SettingsPanelContent = () => {
               <Select defaultValue="1">
                 <SelectTrigger
                   id={`${id}-writing-style`}
-                  className="bg-background w-auto max-w-full h-7 py-1 px-2 gap-1 [&_svg]:-me-1 border-none"
+                  className="bg-background w-auto max-w-full h-7 py-1 px-2 gap-1 [&_svg]:-me-1 border-border"
                 >
                   <SelectValue placeholder="Select writing style" />
                 </SelectTrigger>
@@ -124,7 +124,7 @@ const SettingsPanelContent = () => {
               <Select defaultValue="1">
                 <SelectTrigger
                   id={`${id}-mode`}
-                  className="bg-background w-auto max-w-full h-7 py-1 px-2 gap-1 [&_svg]:-me-1 border-none"
+                  className="bg-background w-auto max-w-full h-7 py-1 px-2 gap-1 [&_svg]:-me-1 border-border"
                 >
                   <SelectValue placeholder="Select mode" />
                 </SelectTrigger>
@@ -142,8 +142,8 @@ const SettingsPanelContent = () => {
         </div>
 
         {/* Content group */}
-        <div className="py-5 relative before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
-          <h3 className="text-xs font-medium uppercase text-muted-foreground/80 mb-4">
+        <div className="py-5 relative before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-border">
+          <h3 className="text-xs font-medium uppercase text-muted-foreground mb-4">
             Configurations
           </h3>
           <div className="space-y-3">
@@ -176,7 +176,7 @@ const SettingsPanel = () => {
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-        <SheetContent className="w-72 px-4 md:px-6 py-0 bg-[hsl(240_5%_92.16%)] [&>button]:hidden">
+        <SheetContent className="w-72 px-4 md:px-6 py-0 bg-sidebar [&>button]:hidden">
           <SheetTitle className="hidden">Settings</SheetTitle>
           <div className="flex h-full w-full flex-col">
             <SettingsPanelContent />
@@ -188,7 +188,7 @@ const SettingsPanel = () => {
 
   return (
     <ScrollArea>
-      <div className="w-[300px] px-4 md:px-6">
+      <div className="w-[300px] px-4 md:px-6 h-full flex flex-col">
         <SettingsPanelContent />
       </div>
     </ScrollArea>
@@ -217,7 +217,7 @@ const SettingsPanelTrigger = ({
       }}
     >
       <RiSettingsLine
-        className="text-muted-foreground sm:text-muted-foreground/70 size-5"
+        className="text-muted-foreground size-5"
         size={20}
         aria-hidden="true"
       />

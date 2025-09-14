@@ -129,7 +129,7 @@ export default function BookmarksPage() {
                       <Breadcrumb>
                         <BreadcrumbList className="sm:gap-1.5">
                           <BreadcrumbItem>
-                            <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                            <BreadcrumbLink href="/">Harmony</BreadcrumbLink>
                           </BreadcrumbItem>
                           <BreadcrumbSeparator />
                           <BreadcrumbItem>
@@ -257,7 +257,7 @@ export default function BookmarksPage() {
                           </div>
                         ) : (
                           <div className="text-center my-6">
-                            <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
+                            <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80 dark:bg-sidebar border-white/[0.12]">
                               <RiBookmarkLine
                                 className="me-1.5 text-muted-foreground/70 -ms-1"
                                 size={12}

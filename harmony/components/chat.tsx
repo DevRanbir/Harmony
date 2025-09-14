@@ -93,7 +93,7 @@ export default function Chat() {
               <Breadcrumb>
                 <BreadcrumbList className="sm:gap-1.5">
                   <BreadcrumbItem>
-                    <BreadcrumbLink href="#">Harmony</BreadcrumbLink>
+                    <BreadcrumbLink href="/">Harmony</BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
@@ -119,7 +119,7 @@ export default function Chat() {
         <div className="relative grow">
           <div className="max-w-3xl mx-auto mt-6 space-y-6">
             <div className="text-center my-8">
-              <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80">
+              <div className="inline-flex items-center bg-white rounded-full border border-black/[0.08] shadow-xs text-xs font-medium py-1 px-3 text-foreground/80 dark:bg-sidebar dark:border-white/[0.08] dark:text-foreground/70">
                 <RiShining2Line
                   className="me-1.5 text-muted-foreground/70 -ms-1"
                   size={14}
@@ -142,10 +142,21 @@ export default function Chat() {
               </ChatMessage>
             ))}
             
+            {isLoading && (
+              <div className="transition-opacity duration-300 ease-out">
+                <ChatMessage isUser={false}>
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-muted-foreground/30 border-t-foreground"></div>
+                    <p>Loading chat history...</p>
+                  </div>
+                </ChatMessage>
+              </div>
+            )}
+            
             {isThinking && (
               <div className="transition-opacity duration-300 ease-out">
                 <ChatMessage isUser={false}>
-                  <p>Thinking...</p>
+                    <p>Thinking...</p>
                 </ChatMessage>
               </div>
             )}

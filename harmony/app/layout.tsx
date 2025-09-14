@@ -1,8 +1,10 @@
 import { Inter } from "next/font/google";
+import type { Metadata } from "next";
 import { ClerkProvider } from '@clerk/nextjs'
 import { AuthProvider } from '@/contexts/auth-context';
 import { BookmarksProvider } from '@/contexts/bookmarks-context';
 import { ChatWithHistoryProvider } from '@/contexts/chat-with-history-provider';
+import { ThemeProvider } from '@/contexts/theme-context';
 import { RouteGuard } from '@/components/route-guard';
 import { PagePreloader } from '@/components/page-preloader';
 import { NavigationLoader } from '@/components/navigation-loader';
@@ -14,6 +16,11 @@ const fontSans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 });
+
+export const metadata: Metadata = {
+  title: "Harmony - Collaborate with ease",
+  description: "The ultimate collaboration platform for modern teams",
+};
 
 export default function RootLayout({
   children,
@@ -34,19 +41,21 @@ export default function RootLayout({
     >
       <html lang="en" suppressHydrationWarning>
         <body className={`${fontSans.variable} font-sans antialiased`}>
-          <NavigationLoader />
-          <AuthProvider>
-            <BookmarksProvider>
-              <ChatWithHistoryProvider>
-                <RouteGuard protectedRoutes={['/dashboard', '/admin', '/*/data']}>
-                  <PageTransition>
-                    {children}
-                  </PageTransition>
-                </RouteGuard>
-              </ChatWithHistoryProvider>
-            </BookmarksProvider>
-            <PagePreloader />
-          </AuthProvider>
+          <ThemeProvider>
+            <NavigationLoader />
+            <AuthProvider>
+              <BookmarksProvider>
+                <ChatWithHistoryProvider>
+                  <RouteGuard protectedRoutes={['/dashboard', '/admin', '/*/data']}>
+                    <PageTransition>
+                      {children}
+                    </PageTransition>
+                  </RouteGuard>
+                </ChatWithHistoryProvider>
+              </BookmarksProvider>
+              <PagePreloader />
+            </AuthProvider>
+          </ThemeProvider>
           {/* Clerk CAPTCHA container - prevent initialization errors */}
           <div id="clerk-captcha" style={{ display: 'none' }}></div>
         </body>

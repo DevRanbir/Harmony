@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { useTheme } from "@/contexts/theme-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
@@ -38,10 +39,112 @@ const CHANDIGARH_UNIVERSITY = {
 
 export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite' | 'hybrid' | 'terrain'>('hybrid');
   const [is3D, setIs3D] = useState(true);
+
+  // Dark mode Google Maps styles
+  const darkMapStyles = [
+    { elementType: "geometry", stylers: [{ color: "#212121" }] },
+    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+    {
+      featureType: "administrative",
+      elementType: "geometry",
+      stylers: [{ color: "#757575" }],
+    },
+    {
+      featureType: "administrative.country",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#9ca5b3" }],
+    },
+    {
+      featureType: "administrative.land_parcel",
+      stylers: [{ visibility: "off" }],
+    },
+    {
+      featureType: "administrative.locality",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#bdbdbd" }],
+    },
+    {
+      featureType: "poi",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#757575" }],
+    },
+    {
+      featureType: "poi.park",
+      elementType: "geometry",
+      stylers: [{ color: "#181818" }],
+    },
+    {
+      featureType: "poi.park",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#616161" }],
+    },
+    {
+      featureType: "poi.park",
+      elementType: "labels.text.stroke",
+      stylers: [{ color: "#1b1b1b" }],
+    },
+    {
+      featureType: "road",
+      elementType: "geometry.fill",
+      stylers: [{ color: "#2c2c2c" }],
+    },
+    {
+      featureType: "road",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#8a8a8a" }],
+    },
+    {
+      featureType: "road.arterial",
+      elementType: "geometry",
+      stylers: [{ color: "#373737" }],
+    },
+    {
+      featureType: "road.highway",
+      elementType: "geometry",
+      stylers: [{ color: "#3c3c3c" }],
+    },
+    {
+      featureType: "road.highway.controlled_access",
+      elementType: "geometry",
+      stylers: [{ color: "#4e4e4e" }],
+    },
+    {
+      featureType: "road.local",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#616161" }],
+    },
+    {
+      featureType: "transit",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#757575" }],
+    },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ color: "#000000" }],
+    },
+    {
+      featureType: "water",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#3d3d3d" }],
+    },
+  ];
+
+  // Light mode Google Maps styles (minimal/default)
+  const lightMapStyles = [
+    {
+      featureType: "poi",
+      elementType: "labels",
+      stylers: [{ visibility: "on" }]
+    }
+  ];
 
   useEffect(() => {
     const initializeMap = async () => {
@@ -82,13 +185,7 @@ export default function MapPage() {
             scaleControl: true,
             rotateControl: true,
             mapId: AdvancedMarkerElement ? '4504f8b37365c3d0' : undefined, // Use map ID only if AdvancedMarkerElement is available
-            styles: [
-              {
-                featureType: "poi",
-                elementType: "labels",
-                stylers: [{ visibility: "on" }]
-              }
-            ]
+            styles: resolvedTheme === 'dark' ? darkMapStyles : lightMapStyles
           });
 
           let marker;
@@ -99,17 +196,17 @@ export default function MapPage() {
             markerElement.innerHTML = `
               <div style="
                 background: #4F46E5;
-                border: 3px solid white;
+                border: 3px solid ${resolvedTheme === 'dark' ? '#374151' : 'white'};
                 border-radius: 50%;
                 width: 24px;
                 height: 24px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                box-shadow: 0 2px 8px rgba(0,0,0,${resolvedTheme === 'dark' ? '0.6' : '0.3'});
               ">
                 <div style="
-                  background: white;
+                  background: ${resolvedTheme === 'dark' ? '#374151' : 'white'};
                   border-radius: 50%;
                   width: 8px;
                   height: 8px;
@@ -144,12 +241,12 @@ export default function MapPage() {
           // Add info window
           const infoWindow = new google.maps.InfoWindow({
             content: `
-              <div class="p-4 max-w-sm">
-                <h3 class="font-bold text-lg text-gray-900">Chandigarh University</h3>
-                <p class="text-gray-600 mt-2">NH-95, Chandigarh-Ludhiana Highway, Mohali, Punjab 140413</p>
+              <div class="p-4 max-w-sm ${resolvedTheme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}">
+                <h3 class="font-bold text-lg ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'}">Chandigarh University</h3>
+                <p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} mt-2">NH-95, Chandigarh-Ludhiana Highway, Mohali, Punjab 140413</p>
                 <div class="mt-3 flex gap-2">
-                  <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">University</span>
-                  <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Educational</span>
+                  <span class="px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-800'} text-xs rounded-full">University</span>
+                  <span class="px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-green-800 text-green-200' : 'bg-green-100 text-green-800'} text-xs rounded-full">Educational</span>
                 </div>
               </div>
             `
@@ -173,7 +270,7 @@ export default function MapPage() {
     };
 
     initializeMap();
-  }, [mapType, is3D]);
+  }, [mapType, is3D, resolvedTheme]);
 
   const handleMapTypeChange = (newMapType: typeof mapType) => {
     setMapType(newMapType);
@@ -217,10 +314,10 @@ export default function MapPage() {
       <SidebarProvider>
         <AppSidebar collapsible="hidden" />
         <SidebarInset className="bg-sidebar group/sidebar-inset">
-          <div className="flex h-[calc(100svh)] bg-[hsl(240_5%_92.16%)] md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
+          <div className="flex h-[calc(100svh)] bg-sidebar md:rounded-s-3xl md:group-peer-data-[state=collapsed]/sidebar-inset:rounded-s-none transition-all ease-in-out duration-300">
             <div className="flex-1 w-full shadow-md md:rounded-s-[inherit] min-[1024px]:rounded-e-3xl bg-background relative overflow-hidden">
               {/* Header */}
-              <header className="py-5 bg-background sticky top-0 z-20 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-gradient-to-r before:from-black/[0.06] before:via-black/10 before:to-black/[0.06]">
+              <header className="py-5 bg-background sticky top-0 z-20 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
                 <div className="flex items-center gap-2 px-4">
                   <SidebarTrigger className="-ml-1" />
                   <Breadcrumb>
@@ -241,8 +338,8 @@ export default function MapPage() {
                 {/* Map Controls */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
                   {/* Map Type Controls */}
-                  <div className="bg-white rounded-lg shadow-lg p-2 space-y-2 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
-                    <div className="text-xs font-medium text-gray-700 px-2">Map Type</div>
+                  <div className="bg-background border border-border rounded-lg shadow-lg p-2 space-y-2 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
+                    <div className="text-xs font-medium text-muted-foreground px-2">Map Type</div>
                     <div className="grid grid-cols-2 gap-1">
                       {(['roadmap', 'satellite', 'hybrid', 'terrain'] as const).map((type) => (
                         <Button
@@ -259,7 +356,7 @@ export default function MapPage() {
                   </div>
 
                   {/* View Controls */}
-                  <div className="bg-white rounded-lg shadow-lg p-2 space-y-2 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
+                  <div className="bg-background border border-border rounded-lg shadow-lg p-2 space-y-2 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
                     <Button
                       variant={is3D ? "default" : "ghost"}
                       size="sm"
@@ -281,7 +378,7 @@ export default function MapPage() {
                   </div>
 
                   {/* Zoom Controls */}
-                  <div className="bg-white rounded-lg shadow-lg p-1 space-y-1 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
+                  <div className="bg-background border border-border rounded-lg shadow-lg p-1 space-y-1 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -303,13 +400,13 @@ export default function MapPage() {
 
                 {/* Location Info */}
                 <div className="absolute bottom-4 left-4 z-10">
-                  <div className="bg-white rounded-lg shadow-lg p-4 max-w-sm">
+                  <div className="bg-background border border-border rounded-lg shadow-lg p-4 max-w-sm">
                     <div className="flex items-center gap-2 mb-2">
-                      <RiMapPinLine className="w-5 h-5 text-blue-600" />
-                      <h3 className="font-semibold text-gray-900">Current Location</h3>
+                      <RiMapPinLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <h3 className="font-semibold text-foreground">Current Location</h3>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">Chandigarh University</p>
-                    <p className="text-xs text-gray-500">Kharar, Punjab, India</p>
+                    <p className="text-sm text-muted-foreground mb-2">Chandigarh University</p>
+                    <p className="text-xs text-muted-foreground">Kharar, Punjab, India</p>
                     <div className="mt-3 flex gap-2">
                       <Badge variant="secondary" className="text-xs">
                         Educational Campus
@@ -323,11 +420,11 @@ export default function MapPage() {
 
                 {/* Loading State */}
                 {!mapLoaded && (
-                  <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-background flex items-center justify-center">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                      <p className="text-gray-600">Loading 3D Map...</p>
-                      <p className="text-sm text-gray-500 mt-1">Chandigarh University</p>
+                      <div className="animate-spin rounded-full h-12 w-12 border-2 border-muted-foreground/30 border-t-foreground mb-4 mx-auto"></div>
+                      <p className="text-foreground">Loading 3D Map...</p>
+                      <p className="text-sm text-muted-foreground mt-1">Chandigarh University</p>
                     </div>
                   </div>
                 )}
