@@ -23,12 +23,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/breadcrumb";
 import { ScrollArea } from "@/components/scroll-area";
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const [showSignUp, setShowSignUp] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect_url') || '/dashboard';
   const error = searchParams.get('error');
@@ -222,7 +221,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-foreground mb-1">
-                      You're signed in!
+                      You&apos;re signed in!
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Welcome back to Harmony

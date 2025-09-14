@@ -12,8 +12,8 @@ export interface SubscriptionInfo {
 }
 
 // Simulate getting subscription info from user metadata
-export function getSubscriptionInfo(userMetadata: any): SubscriptionInfo {
-  return userMetadata?.subscription || {
+export function getSubscriptionInfo(userMetadata: Record<string, unknown> | null | undefined): SubscriptionInfo {
+  return (userMetadata?.subscription as SubscriptionInfo) || {
     plan: 'free',
     status: 'active',
     features: ['Basic features', 'Community support']
@@ -72,9 +72,6 @@ export async function updateSubscription(plan: SubscriptionPlan): Promise<boolea
 
 // Helper to check if user has access to a feature
 export function hasFeatureAccess(userPlan: SubscriptionPlan, feature: string): boolean {
-  const planHierarchy = ['free', 'education', 'pro', 'enterprise'];
-  const userPlanIndex = planHierarchy.indexOf(userPlan);
-  
   // Enterprise has access to everything
   if (userPlan === 'enterprise') return true;
   

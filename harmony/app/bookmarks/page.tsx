@@ -221,7 +221,7 @@ export default function BookmarksPage() {
                               No results found
                             </h3>
                             <p className="text-muted-foreground/70 max-w-sm mx-auto">
-                              Try adjusting your search or filter to find what you're looking for.
+                              Try adjusting your search or filter to find what you&apos;re looking for.
                             </p>
                           </>
                         ) : (

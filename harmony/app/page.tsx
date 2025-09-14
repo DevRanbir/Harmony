@@ -13,7 +13,7 @@ import { useAuthContext } from "@/contexts/auth-context";
 import { useEffect } from "react";
 
 export default function HomePage() {
-  const { user, isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated, isLoading } = useAuthContext();
 
   useEffect(() => {
     // Close sidebar if user is not signed in
@@ -75,7 +75,7 @@ export default function HomePage() {
           {/* Content Layer */}
           <div className="relative z-10">
           {/* Header with Sidebar Trigger */}
-          <div className="border-b bg-card/50 backdrop-blur-sm p-4">
+          <div className="border-b bg-card backdrop-blur-sm p-4">
             <SidebarTrigger />
           </div>
 

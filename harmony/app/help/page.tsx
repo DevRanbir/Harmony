@@ -17,7 +17,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/breadcrumb";
 import { ScrollArea } from "@/components/scroll-area";
-import { ClientRouteGuard } from "@/components/client-route-guard";
 import { Button } from "@/components/button";
 import { Badge } from "@/components/badge";
 import { Input } from "@/components/input";
@@ -42,18 +41,13 @@ import {
   RiGlobalLine,
   RiSearchLine,
   RiArrowDownSLine,
-  RiArrowUpSLine,
   RiBookOpenLine,
   RiCustomerService2Line,
   RiLightbulbLine,
   RiShieldCheckLine,
-  RiSettings3Line,
   RiMessageLine,
   RiSendPlaneLine,
-  RiTimeLine,
-  RiUserAddLine,
   RiThumbUpLine,
-  RiThumbDownLine,
   RiAddLine,
   RiSubtractLine,
   RiEyeOffLine,
@@ -61,8 +55,6 @@ import {
 import { 
   submitPublicQuestion,
   submitPrivateQuestion,
-  getPublicQuestions,
-  getPrivateQuestions,
   voteOnQuestion,
   hasUserVoted,
   listenToPublicQuestions,
@@ -125,8 +117,16 @@ const faqData = [
 
 type TabType = 'faq' | 'public' | 'user';
 
+interface UserType {
+  id?: string;
+  username?: string | null;
+  primaryEmailAddress?: {
+    emailAddress?: string;
+  } | null;
+}
+
 // Helper function to get the correct username for database operations
-const getUserIdentifier = (user: any): string | null => {
+const getUserIdentifier = (user: UserType | null): string | null => {
   if (!user) return null;
   
   // Check if this is the devranbir user based on email or username
@@ -137,7 +137,7 @@ const getUserIdentifier = (user: any): string | null => {
   }
   
   // For other users, use username or id
-  return user.username || user.id;
+  return user.username || user.id || null;
 };
 
 export default function HelpPage() {
@@ -181,7 +181,7 @@ export default function HelpPage() {
 
     // Load private questions if user is authenticated
     let unsubscribePrivate: (() => void) | null = null;
-    const userIdentifier = getUserIdentifier(user);
+    const userIdentifier = getUserIdentifier(user || null);
     if (userIdentifier) {
       console.log('Loading private questions for user:', userIdentifier);
       unsubscribePrivate = listenToPrivateQuestions(userIdentifier, (questions) => {
@@ -250,7 +250,7 @@ export default function HelpPage() {
         });
       } else {
         console.log('Submitting as private question');
-        const userIdentifier = getUserIdentifier(user);
+        const userIdentifier = getUserIdentifier(user || null);
         if (!userIdentifier) {
           throw new Error('Must be logged in to submit private questions');
         }
@@ -322,7 +322,12 @@ export default function HelpPage() {
     setExpandedItems(newExpanded);
   };
 
-  const filterAndSortItems = (items: any[], searchQuery: string, category: string, sortBy: string) => {
+  const filterAndSortItems = <T extends { id: string | number; question: string; category: string; timestamp?: number; votes?: number; answer?: string; description?: string }>(
+    items: T[], 
+    searchQuery: string, 
+    category: string, 
+    sortBy: string
+  ): T[] => {
     // Filter items
     const filtered = items.filter(item => {
       const searchText = searchQuery.toLowerCase();
@@ -705,7 +710,7 @@ export default function HelpPage() {
                                           {qna.isAnonymous && <RiEyeOffLine className="h-3 w-3" />}
                                         </span>
                                         <span>•</span>
-                                        <span>{new Date(qna.timestamp).toLocaleDateString()}</span>
+                                        <span>{qna.timestamp ? new Date(qna.timestamp).toLocaleDateString() : 'Unknown date'}</span>
                                         <span>•</span>
                                         <span>{qna.votes || 0} votes</span>
                                         <span>•</span>
@@ -747,18 +752,18 @@ export default function HelpPage() {
                                       </Badge>
                                       <div className="flex items-center gap-2">
                                         <Button 
-                                          variant={userVotes.has(qna.id) ? "default" : "ghost"}
+                                          variant={userVotes.has(String(qna.id)) ? "default" : "ghost"}
                                           size="sm"
-                                          onClick={() => handleVote(qna.id, !userVotes.has(qna.id))}
+                                          onClick={() => handleVote(String(qna.id), !userVotes.has(String(qna.id)))}
                                           className={`text-xs px-2 py-1 h-auto transition-all duration-200 ${
-                                            userVotes.has(qna.id) 
+                                            userVotes.has(String(qna.id)) 
                                               ? 'bg-blue-600 text-white hover:bg-blue-700' 
                                               : 'hover:bg-blue-50 hover:text-blue-600'
                                           }`}
                                           disabled={!user}
                                         >
                                           <RiThumbUpLine className="h-3 w-3 mr-1" />
-                                          {userVotes.has(qna.id) ? 'Voted' : 'Vote Up'}
+                                          {userVotes.has(String(qna.id)) ? 'Voted' : 'Vote Up'}
                                         </Button>
                                         <span className="text-xs text-muted-foreground font-medium">{qna.votes || 0}</span>
                                       </div>
@@ -881,7 +886,7 @@ export default function HelpPage() {
                                     <div className="flex-1">
                                       <span className="font-medium block">{qna.question}</span>
                                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                        <span>{new Date(qna.timestamp).toLocaleDateString()}</span>
+                                        <span>{qna.timestamp ? new Date(qna.timestamp).toLocaleDateString() : 'Unknown date'}</span>
                                         <span>•</span>
                                         <Badge variant="outline" className="text-xs">
                                           {qna.status}
@@ -912,7 +917,7 @@ export default function HelpPage() {
                                       </div>
                                     ) : (
                                       <div className="pt-3 text-sm text-muted-foreground italic">
-                                        Your question is being reviewed by our support team. You'll receive a private response soon.
+                                        Your question is being reviewed by our support team. You&apos;ll receive a private response soon.
                                       </div>
                                     )}
                                     <div className="mt-3">
@@ -957,7 +962,7 @@ export default function HelpPage() {
                       </div>
                       <h3 className="text-lg font-semibold mb-2">Still need help?</h3>
                       <p className="text-muted-foreground mb-4">
-                        Can't find what you're looking for? Our support team is here to help.
+                        Can&apos;t find what you&apos;re looking for? Our support team is here to help.
                       </p>
                       <Button>
                         <RiMessageLine className="mr-2 h-4 w-4" />

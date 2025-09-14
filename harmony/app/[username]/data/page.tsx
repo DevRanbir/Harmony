@@ -218,7 +218,7 @@ export default function MetricsPage({ params }: PageProps) {
                         Welcome back, {user?.firstName || user?.fullName?.split(' ')[0] || "User"}
                       </h1>
                       <p className="text-muted-foreground">
-                        Here's an overview of your activity on Harmony
+                        Here&apos;s an overview of your activity on Harmony
                       </p>
                     </div>
 

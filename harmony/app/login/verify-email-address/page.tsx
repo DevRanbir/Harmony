@@ -1,7 +1,7 @@
 "use client";
 
 import { useSignUp } from "@clerk/nextjs";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/button";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -10,6 +10,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/sidebar";
+
+interface ClerkError {
+  errors?: Array<{ message: string }>;
+}
 
 export default function VerifyEmailPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -37,9 +41,12 @@ export default function VerifyEmailPage() {
         console.error("Sign up not complete:", completeSignUp);
         setError("Verification failed. Please try again.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Verification error:", err);
-      setError(err.errors?.[0]?.message || "Verification failed. Please try again.");
+      const errorMessage = err instanceof Error && 'errors' in err 
+        ? (err as ClerkError).errors?.[0]?.message || "Verification failed. Please try again."
+        : "Verification failed. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsVerifying(false);
     }
@@ -50,9 +57,12 @@ export default function VerifyEmailPage() {
 
     try {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Resend error:", err);
-      setError(err.errors?.[0]?.message || "Failed to resend code.");
+      const errorMessage = err instanceof Error && 'errors' in err 
+        ? (err as ClerkError).errors?.[0]?.message || "Failed to resend code."
+        : "Failed to resend code.";
+      setError(errorMessage);
     }
   };
 
@@ -77,7 +87,7 @@ export default function VerifyEmailPage() {
                   Verify Your Email
                 </h1>
                 <p className="text-muted-foreground">
-                  We've sent a verification code to your email address. Enter it below to complete your signup.
+                  We&apos;ve sent a verification code to your email address. Enter it below to complete your signup.
                 </p>
               </div>
 
@@ -115,7 +125,7 @@ export default function VerifyEmailPage() {
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Didn't receive the code?{" "}
+                  Didn&apos;t receive the code?{" "}
                   <button
                     onClick={resendCode}
                     className="text-primary hover:underline"

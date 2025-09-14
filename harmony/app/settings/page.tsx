@@ -108,7 +108,7 @@ export default function SettingsPage() {
     loadSettings();
   }, [user?.username]);
 
-  const updateSetting = async (path: string, value: any) => {
+  const updateSetting = async (path: string, value: string | number | boolean) => {
     if (!user?.username) return;
     
     try {
@@ -118,13 +118,13 @@ export default function SettingsPage() {
       const pathParts = path.split('.');
       setSettings(prev => {
         const newSettings = { ...prev };
-        let current: any = newSettings;
+        let current: Record<string, unknown> = newSettings;
         
         for (let i = 0; i < pathParts.length - 1; i++) {
           if (!current[pathParts[i]]) {
             current[pathParts[i]] = {};
           }
-          current = current[pathParts[i]];
+          current = current[pathParts[i]] as Record<string, unknown>;
         }
         current[pathParts[pathParts.length - 1]] = value;
         
@@ -274,8 +274,8 @@ export default function SettingsPage() {
               size="sm"
               onClick={() => {
                 // Open Clerk user profile modal
-                const clerk = (window as any).Clerk;
-                if (clerk) {
+                const clerk = (window as unknown as { Clerk?: { openUserProfile?: () => void } }).Clerk;
+                if (clerk && clerk.openUserProfile) {
                   clerk.openUserProfile();
                 }
               }}
@@ -672,8 +672,8 @@ export default function SettingsPage() {
               size="sm"
               onClick={() => {
                 // Open Clerk user profile modal
-                const clerk = (window as any).Clerk;
-                if (clerk) {
+                const clerk = (window as unknown as { Clerk?: { openUserProfile?: () => void } }).Clerk;
+                if (clerk && clerk.openUserProfile) {
                   clerk.openUserProfile();
                 }
               }}

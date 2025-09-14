@@ -1,4 +1,4 @@
-import { ref, push, set, get, remove, onValue, off, query, orderByChild, DatabaseReference } from 'firebase/database';
+import { ref, push, set, get, remove, onValue, off } from 'firebase/database';
 import { database, isFirebaseConfigured } from './firebase';
 
 export interface ChatMessage {
@@ -53,7 +53,7 @@ const isFirebaseAvailable = (): boolean => {
 };
 
 // LocalStorage fallback functions
-const saveToLocalStorage = (type: 'chat' | 'bookmark', username: string, data: any, date?: string): string => {
+const saveToLocalStorage = (type: 'chat' | 'bookmark', username: string, data: ChatMessage | BookmarkData | Omit<ChatMessage, 'id'>, date?: string): string => {
   const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
   
   if (type === 'chat' && date) {
@@ -77,7 +77,8 @@ const saveToLocalStorage = (type: 'chat' | 'bookmark', username: string, data: a
       localStorage.setItem(key, JSON.stringify(existing));
       
       // Also update the general history
-      updateLocalStorageHistory(username, date, data.content);
+      const content = 'content' in data ? data.content : '';
+      updateLocalStorageHistory(username, date, content);
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
@@ -120,7 +121,7 @@ const updateLocalStorageHistory = (username: string, date: string, lastMessage: 
       history = JSON.parse(stored);
     }
     
-    const existingIndex = history.findIndex((item: any) => item.date === date);
+    const existingIndex = history.findIndex((item: ChatHistory) => item.date === date);
     if (existingIndex >= 0) {
       history[existingIndex].lastMessage = lastMessage;
       history[existingIndex].lastTimestamp = Date.now();
@@ -141,7 +142,10 @@ const updateLocalStorageHistory = (username: string, date: string, lastMessage: 
   }
 };
 
-const getFromLocalStorage = (type: 'chat' | 'bookmark', username: string, date?: string): any[] => {
+// Function overloads for proper typing
+function getFromLocalStorage(type: 'chat', username: string, date?: string): ChatMessage[];
+function getFromLocalStorage(type: 'bookmark', username: string, date?: string): BookmarkData[];
+function getFromLocalStorage(type: 'chat' | 'bookmark', username: string, date?: string): ChatMessage[] | BookmarkData[] {
   if (type === 'chat' && date) {
     // For chat messages, get from date-specific storage
     const key = `harmony_chat_${username}_${date}`;
@@ -182,7 +186,7 @@ const removeFromLocalStorage = (type: 'chat' | 'bookmark', username: string, id:
       const stored = localStorage.getItem(key);
       if (stored) {
         const existing = JSON.parse(stored);
-        const filtered = existing.filter((item: any) => item.id !== id);
+        const filtered = existing.filter((item: ChatMessage | BookmarkData) => item.id !== id);
         localStorage.setItem(key, JSON.stringify(filtered));
         return true;
       }
@@ -199,7 +203,7 @@ const removeFromLocalStorage = (type: 'chat' | 'bookmark', username: string, id:
       const stored = localStorage.getItem(key);
       if (stored) {
         const existing = JSON.parse(stored);
-        const filtered = existing.filter((item: any) => item.id !== id);
+        const filtered = existing.filter((item: ChatMessage | BookmarkData) => item.id !== id);
         localStorage.setItem(key, JSON.stringify(filtered));
         return true;
       }
@@ -283,7 +287,7 @@ export const subscribeToChatMessages = (
 
   const chatRef = ref(database!, `${username}/data/chat/${date}`);
   
-  const handleValue = (snapshot: any) => {
+  const handleValue = (snapshot: import('firebase/database').DataSnapshot) => {
     if (snapshot.exists()) {
       const messages = snapshot.val();
       const messageList = Object.values(messages) as ChatMessage[];
@@ -340,7 +344,7 @@ export const getBookmarks = async (username: string): Promise<BookmarkData[]> =>
   if (!isFirebaseAvailable()) {
     console.warn('Firebase not available, using localStorage fallback');
     const bookmarks = getFromLocalStorage('bookmark', username, undefined);
-    return bookmarks.sort((a: any, b: any) => b.bookmarkedAt - a.bookmarkedAt);
+    return bookmarks.sort((a: BookmarkData, b: BookmarkData) => b.bookmarkedAt - a.bookmarkedAt);
   }
 
   try {
@@ -369,7 +373,7 @@ export const subscribeToBookmarks = (
     console.warn('Firebase not available, using localStorage fallback');
     // For localStorage, we'll just call the callback once with current data
     const bookmarks = getFromLocalStorage('bookmark', username, undefined);
-    callback(bookmarks.sort((a: any, b: any) => b.bookmarkedAt - a.bookmarkedAt));
+    callback(bookmarks.sort((a: BookmarkData, b: BookmarkData) => b.bookmarkedAt - a.bookmarkedAt));
     
     // Return a no-op unsubscribe function
     return () => {};
@@ -377,7 +381,7 @@ export const subscribeToBookmarks = (
 
   const bookmarksRef = ref(database!, `${username}/data/bookmark`);
   
-  const handleValue = (snapshot: any) => {
+  const handleValue = (snapshot: import('firebase/database').DataSnapshot) => {
     if (snapshot.exists()) {
       const bookmarks = snapshot.val();
       const bookmarkList = Object.values(bookmarks) as BookmarkData[];
@@ -416,7 +420,7 @@ export const getAllChatDates = async (username: string): Promise<string[]> => {
   if (!isFirebaseAvailable()) {
     console.warn('Firebase not available, using localStorage fallback');
     const messages = getFromLocalStorage('chat', username);
-    const dates = new Set(messages.map((msg: any) => 
+    const dates = new Set(messages.map((msg: ChatMessage) => 
       new Date(msg.timestamp).toISOString().split('T')[0]
     ));
     return Array.from(dates).sort().reverse();
@@ -441,7 +445,7 @@ export const getChatMessagesCount = async (username: string, date: string): Prom
   if (!isFirebaseAvailable()) {
     console.warn('Firebase not available, using localStorage fallback');
     const messages = getFromLocalStorage('chat', username);
-    return messages.filter((msg: any) => {
+    return messages.filter((msg: ChatMessage) => {
       const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
       return msgDate === date;
     }).length;
@@ -989,7 +993,7 @@ export const getUserSettings = async (username: string): Promise<UserSettings> =
   }
 };
 
-export const updateUserSetting = async (username: string, settingPath: string, value: any): Promise<boolean> => {
+export const updateUserSetting = async (username: string, settingPath: string, value: unknown): Promise<boolean> => {
   try {
     if (!isFirebaseAvailable() || !database) {
       // Update localStorage as fallback
