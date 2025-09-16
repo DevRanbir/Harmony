@@ -97,7 +97,7 @@ export default function GlobalError({
                 Something Went Wrong!
               </h1>
               <p className="text-lg text-muted-foreground max-w-md">
-                We encountered an unexpected error. <br />Don't worry, you can try again or go back to safety.
+                We encountered an unexpected error. <br />Don&apos;t worry, you can try again or go back to safety.
               </p>
             </div>
 

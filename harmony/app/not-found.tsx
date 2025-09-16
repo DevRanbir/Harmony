@@ -54,7 +54,7 @@ export default function NotFound() {
                 Page Not Found
               </h1>
               <p className="text-lg text-muted-foreground max-w-md">
-                Oops! The page you're looking for doesn't exist. <br />It might have been moved or deleted.
+                Oops! The page you&apos;re looking for doesn&apos;t exist. <br />It might have been moved or deleted.
               </p>
             </div>
 

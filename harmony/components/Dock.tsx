@@ -85,7 +85,7 @@ function DockItem({
     >
       {Children.map(children, child => {
         if (React.isValidElement(child)) {
-          return cloneElement(child, { isHovered } as any);
+          return cloneElement(child, { isHovered } as Partial<{ isHovered: MotionValue<number> }>);
         }
         return child;
       })}
