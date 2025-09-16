@@ -96,8 +96,8 @@ const defaultOptions: HyperspeedOptions = {
   carShiftX: [-0.8, 0.8],
   carFloorSeparation: [0, 5],
   colors: {
-    roadColor: 0x080808,
-    islandColor: 0x0a0a0a,
+    roadColor: 0x000000,
+    islandColor: 0x000000,
     background: 0x000000,
     shoulderLines: 0xffffff,
     brokenLines: 0xffffff,
@@ -135,8 +135,8 @@ export const hyperspeedPresets = {
     carShiftX: [-0.8, 0.8],
     carFloorSeparation: [0, 5],
     colors: {
-      roadColor: 0x080808,
-      islandColor: 0x0a0a0a,
+      roadColor: 0x000000,
+      islandColor: 0x000000,
       background: 0x000000,
       shoulderLines: 0x131318,
       brokenLines: 0x131318,
@@ -172,8 +172,8 @@ export const hyperspeedPresets = {
     carShiftX: [-0.2, 0.2],
     carFloorSeparation: [0.05, 1],
     colors: {
-      roadColor: 0x080808,
-      islandColor: 0x0a0a0a,
+      roadColor: 0x000000,
+      islandColor: 0x000000,
       background: 0x000000,
       shoulderLines: 0x131318,
       brokenLines: 0x131318,
@@ -209,8 +209,8 @@ export const hyperspeedPresets = {
     carShiftX: [-0.5, 0.5],
     carFloorSeparation: [0, 0.1],
     colors: {
-      roadColor: 0x080808,
-      islandColor: 0x0a0a0a,
+      roadColor: 0x000000,
+      islandColor: 0x000000,
       background: 0x000000,
       shoulderLines: 0x131318,
       brokenLines: 0x131318,
@@ -246,8 +246,8 @@ export const hyperspeedPresets = {
     carShiftX: [-0.2, 0.2],
     carFloorSeparation: [0.05, 1],
     colors: {
-      roadColor: 0x080808,
-      islandColor: 0x0a0a0a,
+      roadColor: 0x000000,
+      islandColor: 0x000000,
       background: 0x000000,
       shoulderLines: 0x131318,
       brokenLines: 0x131318,
@@ -283,8 +283,8 @@ export const hyperspeedPresets = {
     carShiftX: [-0.2, 0.2],
     carFloorSeparation: [0.05, 1],
     colors: {
-      roadColor: 0x080808,
-      islandColor: 0x0a0a0a,
+      roadColor: 0x000000,
+      islandColor: 0x000000,
       background: 0x000000,
       shoulderLines: 0x131318,
       brokenLines: 0x131318,
@@ -320,8 +320,8 @@ export const hyperspeedPresets = {
     carShiftX: [-0.2, 0.2],
     carFloorSeparation: [0.05, 1],
     colors: {
-      roadColor: 0x080808,
-      islandColor: 0x0a0a0a,
+      roadColor: 0x000000,
+      islandColor: 0x000000,
       background: 0x000000,
       shoulderLines: 0x131318,
       brokenLines: 0x131318,
@@ -1028,6 +1028,7 @@ class Road {
       fragmentShader: isRoad ? roadFragment : islandFragment,
       vertexShader: roadVertex,
       side: THREE.DoubleSide,
+      transparent: true,
       uniforms: Object.assign(
         uniforms,
         this.webgl.fogUniforms,
@@ -1072,15 +1073,17 @@ const roadBaseFragment = `
   void main() {
     vec2 uv = vUv;
     vec3 color = vec3(uColor);
+    float alpha = 0.0;
     #include <roadMarkings_fragment>
-    gl_FragColor = vec4(color, 1.);
+    gl_FragColor = vec4(color, alpha);
     ${THREE.ShaderChunk['fog_fragment']}
   }
 `;
 
 const islandFragment = roadBaseFragment
   .replace('#include <roadMarkings_fragment>', '')
-  .replace('#include <roadMarkings_vars>', '');
+  .replace('#include <roadMarkings_vars>', '')
+  .replace('float alpha = 0.0;', 'float alpha = 0.0;');
 
 const roadMarkings_vars = `
   uniform float uLanes;
@@ -1505,7 +1508,7 @@ const Hyperspeed: FC<HyperspeedProps> = ({ effectOptions = {} }) => {
     height: '100%', 
     minHeight: '100vh',
     overflow: 'hidden',
-    background: '#000' 
+    background: 'transparent', 
   }}></div>;
 };
 

@@ -36,6 +36,7 @@
     "firebase": "^12.2.1",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.542.0",
+    "motion": "^12.23.13",
     "next": "15.5.2",
     "postprocessing": "^6.37.8",
     "react": "19.1.0",

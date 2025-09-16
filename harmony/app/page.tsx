@@ -9,27 +9,100 @@ import {
 } from "@/components/sidebar";
 import Link from "next/link";
 import Hyperspeed from "@/components/Hyperspeed";
+import Dock from "@/components/Dock";
 import { useAuthContext } from "@/contexts/auth-context";
-import { useEffect } from "react";
-
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { RiChatSmileLine, RiMoneyRupeeCircleLine, RiSeedlingLine } from "@remixicon/react";
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuthContext();
+  const router = useRouter();
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
-  useEffect(() => {
-    // Close sidebar if user is not signed in
-    if (!isLoading && !isAuthenticated) {
-      // Force sidebar to be closed for non-authenticated users
+  const toggleSidebar = () => {
+    // Use the SidebarTrigger approach or dispatch a custom event
+    const sidebarTrigger = document.querySelector('[data-sidebar="trigger"]') as HTMLButtonElement;
+    if (sidebarTrigger) {
+      sidebarTrigger.click();
+    } else {
+      // Fallback to direct DOM manipulation
       const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
       if (sidebarElement) {
-        sidebarElement.setAttribute('data-state', 'collapsed');
+        const currentState = sidebarElement.getAttribute('data-state');
+        sidebarElement.setAttribute('data-state', currentState === 'collapsed' ? 'expanded' : 'collapsed');
       }
     }
+  };
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const dockItems = [
+    {
+      icon: (
+        <RiChatSmileLine className="w-6 h-6" />
+      ),
+      label: isAuthenticated ? "Go to Chat" : "Get Started",
+      onClick: () => router.push("/login"),
+    },
+    {
+      icon: (
+        <RiMoneyRupeeCircleLine className="w-6 h-6" />
+      ),
+      label: "Pricing",
+      onClick: () => router.push("/prices"),
+    },
+    {
+      icon: (
+        <RiSeedlingLine className="w-6 h-6" />
+      ),
+      label: "FAQ",
+      onClick: () => router.push("/faq"),
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      ),
+      label: "Trigger Sidebar",
+      onClick: toggleSidebar,
+    },
+    {
+      icon: isDarkMode ? (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ) : (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+      ),
+      label: isDarkMode ? "Light Mode" : "Dark Mode",
+      onClick: toggleTheme,
+    },
+  ];
+
+  useEffect(() => {
+    // Ensure sidebar is closed by default
+    const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
+    if (sidebarElement) {
+      sidebarElement.setAttribute('data-state', 'collapsed');
+    }
+
+    // Initialize theme
+    const isDark = document.documentElement.classList.contains('dark');
+    setIsDarkMode(isDark);
   }, [isAuthenticated, isLoading]);
 
   return (
-    <SidebarProvider defaultOpen={!!isAuthenticated}>
-      <AppSidebar collapsible={isAuthenticated ? "icon" : "hidden"} />
+    <SidebarProvider defaultOpen={false}>
+      <AppSidebar collapsible={isAuthenticated ? "offcanvas" : "hidden"} />
       <SidebarInset className="bg-sidebar group/sidebar-inset">
+        {/* Hidden sidebar trigger for programmatic access */}
+        <SidebarTrigger className="hidden" data-sidebar="trigger" />
         <div className="min-h-screen bg-background relative">
           {/* Hyperspeed Background */}
           <div className="fixed inset-0 z-0 w-full h-full min-h-screen">
@@ -74,11 +147,6 @@ export default function HomePage() {
 
           {/* Content Layer */}
           <div className="relative z-10">
-          {/* Header with Sidebar Trigger */}
-          <div className="border-b bg-card backdrop-blur-sm p-4">
-            <SidebarTrigger />
-          </div>
-
           {/* Hero Section */}
           <div className="container mx-auto px-4 py-24 text-center">
         <div className="max-w-4xl mx-auto">
@@ -86,26 +154,26 @@ export default function HomePage() {
             Collaborate with
             <span className="text-primary block">Harmony</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto drop-shadow-md">
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto drop-shadow-md">
             The ultimate collaboration platform that brings your team together. 
             Work smarter, faster, and more efficiently than ever before.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href="/login">
-              <Button size="lg" className="px-8">
-                {isAuthenticated ? "Go to Chat" : "Get Started Free"}
-              </Button>
-            </Link>
-            <Link href="/prices">
-              <Button variant="outline" size="lg" className="px-8">
-                View Pricing
-              </Button>
-            </Link>
+          {/* Dock Navigation - Centered in hero */}
+          <div className="flex justify-center mt-8">
+            <div className="h-20 flex items-center justify-center opacity-100">
+              <Dock 
+                items={dockItems}
+                className={`${isDarkMode ? 'text-white' : 'text-gray-800'} bg-transparent`}
+                magnification={80}
+                distance={100}
+                panelHeight={64}
+              />
+            </div>
           </div>
 
           {/* Feature Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
             <div className="bg-card/80 backdrop-blur-sm border rounded-lg p-8 text-center">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg

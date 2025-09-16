@@ -78,6 +78,11 @@ const navData = {
       url: "#",
       items: [
         {
+          title: "About",
+          url: "/",
+          icon: RiBardLine,
+        },
+        {
           title: "Help Centre",
           url: "/help",
           icon: RiSeedlingLine,
