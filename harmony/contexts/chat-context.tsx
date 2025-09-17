@@ -238,7 +238,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
           user.username!,
           currentDate,
           content.trim(),
-          messages // Pass current messages as context
+          messages.map(msg => ({ sender: msg.isUser ? 'user' : 'ai', text: msg.content })) // Transform messages to match expected structure
         );
 
         const aiMessage = convertToFirebase({
@@ -351,7 +351,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
           user.username!,
           currentDate,
           userMessage.content,
-          messages.slice(0, messageIndex) // Pass messages up to this point
+          messages.slice(0, messageIndex).map(msg => ({ sender: msg.isUser ? 'user' : 'ai', text: msg.content })) // Transform messages to match expected structure
         );
 
         const aiMessage = convertToFirebase({
@@ -430,7 +430,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
         user.username!,
         currentDate,
         newContent.trim(),
-        messages.slice(0, messageIndex) // Pass messages up to the edit point
+        messages.slice(0, messageIndex).map(msg => ({ sender: msg.isUser ? 'user' : 'ai', text: msg.content })) // Transform messages to match expected structure
       );
 
       // Only after we have the new response, delete messages and update

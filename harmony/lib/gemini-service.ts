@@ -18,7 +18,7 @@ export class GeminiService {
     userId: string, 
     chatId: string, 
     message: string,
-    previousMessages: any[] = []
+    previousMessages: { sender: string; text: string }[] = []
   ): Promise<string> {
     try {
       const response = await fetch('/api/chat/gemini', {
@@ -64,7 +64,7 @@ export class GeminiService {
   /**
    * Get basic model information
    */
-  public async getModelInfo(): Promise<any> {
+  public async getModelInfo(): Promise<{ name: string; description: string; maxTokens: number; temperature: number }> {
     return {
       name: 'gemini-1.5-flash',
       description: 'Google Gemini 1.5 Flash - Fast and efficient AI model',

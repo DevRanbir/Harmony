@@ -44,8 +44,8 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
             {children}
           </p>
         ),
-        code: ({ node, inline, className, children, ...props }: any) => {
-          const match = /language-(\w+)/.exec(className || '');
+        code: ({ inline, className, children, ...props }: { node?: unknown; inline?: boolean; className?: string; children?: React.ReactNode }) => {
+          // Removed unused 'match' variable
           return !inline ? (
             <pre className="bg-black/5 dark:bg-white/5 border border-white/20 dark:border-white/20 rounded-md p-3 my-2 overflow-x-auto">
               <code className={className} {...props}>
