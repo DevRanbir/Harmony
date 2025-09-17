@@ -22,6 +22,7 @@ import {
   RiLeafLine,
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
+import { FormattedMessage } from "@/components/formatted-message";
 import { useRef, useEffect, useState } from "react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useChat } from "@/contexts/chat-context";
@@ -30,11 +31,12 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuthContext();
-  const { messages, sendMessage, isLoading, isSending, isThinking, currentDate } = useChat();
+  const { messages, sendMessage, editMessage, isLoading, isSending, isThinking, currentDate } = useChat();
   const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(false);
   const [lastChatDate, setLastChatDate] = useState(currentDate);
-  
   const [inputValue, setInputValue] = useState("");
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   const scrollToBottom = (behavior: 'auto' | 'smooth' = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -80,6 +82,36 @@ export default function Chat() {
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
+  };
+
+  const handleUserMessageClick = (messageId: string, content: string) => {
+    if (isSending) return; // Don't allow editing while sending
+    
+    setEditingMessageId(messageId);
+    setEditingContent(content);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingMessageId || !editingContent.trim() || isSending) return;
+    
+    await editMessage(editingMessageId, editingContent.trim());
+    setEditingMessageId(null);
+    setEditingContent("");
+  };
+
+  const handleEditCancel = () => {
+    console.log("Cancel clicked"); // Debug log
+    setEditingMessageId(null);
+    setEditingContent("");
+  };
+
+  const handleEditKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleEditSubmit();
+    } else if (e.key === "Escape") {
+      handleEditCancel();
+    }
   };
 
   return (
@@ -137,8 +169,50 @@ export default function Chat() {
                 messageId={message.id}
                 messageContent={message.content}
                 messageTimestamp={message.timestamp}
+                onUserMessageClick={handleUserMessageClick}
+                isSelected={editingMessageId === message.id}
               >
-                <p style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>
+                {editingMessageId === message.id ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      onKeyDown={handleEditKeyPress}
+                      className="w-full min-h-[60px] p-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Edit your message..."
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleEditSubmit();
+                        }}
+                        disabled={!editingContent.trim() || isSending}
+                      >
+                        {isSending ? "Updating..." : "Update"}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleEditCancel();
+                        }}
+                        disabled={isSending}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : message.isUser ? (
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>
+                ) : (
+                  <FormattedMessage content={message.content} />
+                )}
               </ChatMessage>
             ))}
             
@@ -173,9 +247,9 @@ export default function Chat() {
                 value={inputValue}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyPress}
-                disabled={isSending}
+                disabled={isSending || editingMessageId !== null}
                 className="flex sm:min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-none [resize:none]"
-                placeholder="Ask me anything..."
+                placeholder={editingMessageId ? "Finish editing the message above..." : "Ask me anything..."}
                 aria-label="Enter your prompt"
               />
               {/* Textarea buttons */}
@@ -253,7 +327,7 @@ export default function Chat() {
                   <Button 
                     className="rounded-full h-8"
                     onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || isSending}
+                    disabled={!inputValue.trim() || isSending || editingMessageId !== null}
                   >
                     {isSending ? "Sending..." : "Ask Harmony"}
                   </Button>

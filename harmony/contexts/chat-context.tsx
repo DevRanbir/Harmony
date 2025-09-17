@@ -15,6 +15,7 @@ import {
   ChatMessage as FirebaseChatMessage 
 } from '@/lib/firebase-service';
 import { initializeUserChat } from '@/lib/chat-utils';
+import { geminiService } from '@/lib/gemini-service';
 
 export interface ChatMessage {
   id: string;
@@ -28,6 +29,8 @@ interface ChatContextType {
   messages: ChatMessage[];
   sendMessage: (content: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
+  regenerateMessage: (messageId: string) => Promise<void>;
+  editMessage: (messageId: string, newContent: string) => Promise<void>;
   loadMessagesForDate: (date: string) => Promise<void>;
   createNewChat: () => Promise<void>;
   currentDate: string;
@@ -197,10 +200,10 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       setIsSending(false);
       isSendingRef.current = false;
       
-      // Fade out thinking state with delay for smooth transition
+      // Fade out thinking state with shorter delay for faster UI
       setTimeout(() => {
         setIsThinking(false);
-      }, 300);
+      }, 150);
     };
 
     const startSendingState = () => {
@@ -208,12 +211,12 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       setIsThinking(true);
       isSendingRef.current = true;
 
-      // Safety timeout (prevents stuck "sending" state)
+      // Safety timeout (prevents stuck "sending" state) - reduced for faster responses
       if (sendingTimeoutRef.current) clearTimeout(sendingTimeoutRef.current);
       sendingTimeoutRef.current = setTimeout(() => {
         console.warn("Force clearing isSending state after timeout");
         resetSendingState();
-      }, 15000); // Increased to 15 seconds for safety
+      }, 10000); // Reduced to 10 seconds
     };
 
     try {
@@ -228,31 +231,37 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       await saveChatMessage(user.username, userMessage, currentDate);
 
-      // Simulate AI response
-      setTimeout(async () => {
-        try {
-          const aiMessage = convertToFirebase({
-            content: "Not connected", // TODO: Replace with actual AI integration
-            isUser: false,
-          });
+      // Get AI response from Gemini immediately (no setTimeout delay)
+      try {
+        // Get AI response with chat history
+        const aiResponse = await geminiService.sendMessage(
+          user.username!,
+          currentDate,
+          content.trim(),
+          messages // Pass current messages as context
+        );
 
-          // Reset sending state BEFORE saving AI message to prevent double thinking
-          resetSendingState();
-          
-          await saveChatMessage(user.username!, aiMessage, currentDate);
-          
-          // Update history with a delay to ensure UI has settled
-          setTimeout(() => {
-            if (!isSendingRef.current) {
-              debouncedHistoryUpdate();
-            }
-          }, 300);
-          
-        } catch (error) {
-          console.error("Failed to send AI response:", error);
-          resetSendingState();
-        }
-      }, 1500); // Slightly increased thinking time
+        const aiMessage = convertToFirebase({
+          content: aiResponse,
+          isUser: false,
+        });
+
+        // Reset sending state BEFORE saving AI message to prevent double thinking
+        resetSendingState();
+        
+        await saveChatMessage(user.username!, aiMessage, currentDate);
+        
+        // Update history with a delay to ensure UI has settled
+        setTimeout(() => {
+          if (!isSendingRef.current) {
+            debouncedHistoryUpdate();
+          }
+        }, 300);
+        
+      } catch (error) {
+        console.error("Failed to send AI response:", error);
+        resetSendingState();
+      }
       
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -271,6 +280,196 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       // The real-time subscription will update the local state
     } catch (error) {
       console.error('Failed to delete message:', error);
+    }
+  };
+
+  const regenerateMessage = async (messageId: string) => {
+    if (!user?.username || isSendingRef.current) {
+      return;
+    }
+
+    const resetSendingState = () => {
+      if (sendingTimeoutRef.current) clearTimeout(sendingTimeoutRef.current);
+      setIsSending(false);
+      isSendingRef.current = false;
+      
+      // Fade out thinking state with shorter delay for faster UI
+      setTimeout(() => {
+        setIsThinking(false);
+      }, 150);
+    };
+
+    const startSendingState = () => {
+      setIsSending(true);
+      setIsThinking(true);
+      isSendingRef.current = true;
+
+      // Safety timeout (prevents stuck "sending" state) - reduced for faster responses
+      if (sendingTimeoutRef.current) clearTimeout(sendingTimeoutRef.current);
+      sendingTimeoutRef.current = setTimeout(() => {
+        console.warn("Force clearing isSending state after timeout");
+        resetSendingState();
+      }, 10000); // Reduced to 10 seconds
+    };
+
+    try {
+      startSendingState();
+
+      // Find the message to regenerate and the previous user message
+      const messageIndex = messages.findIndex(msg => msg.id === messageId);
+      if (messageIndex === -1 || messageIndex === 0) {
+        resetSendingState();
+        return;
+      }
+
+      const messageToRegenerate = messages[messageIndex];
+      if (messageToRegenerate.isUser) {
+        resetSendingState();
+        return; // Can't regenerate user messages
+      }
+
+      // Find the previous user message
+      let userMessage = null;
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        if (messages[i].isUser) {
+          userMessage = messages[i];
+          break;
+        }
+      }
+
+      if (!userMessage) {
+        resetSendingState();
+        return;
+      }
+
+      // Delete the current AI message
+      await deleteMessage(messageId);
+
+      // Generate new response with the same user input
+      try {
+        const aiResponse = await geminiService.sendMessage(
+          user.username!,
+          currentDate,
+          userMessage.content,
+          messages.slice(0, messageIndex) // Pass messages up to this point
+        );
+
+        const aiMessage = convertToFirebase({
+          content: aiResponse,
+          isUser: false,
+        });
+
+        // Reset sending state BEFORE saving AI message to prevent double thinking
+        resetSendingState();
+
+        await saveChatMessage(user.username!, aiMessage, currentDate);
+        
+        // Update history with a delay to ensure UI has settled
+        setTimeout(() => {
+          if (!isSendingRef.current) {
+            debouncedHistoryUpdate();
+          }
+        }, 300);
+
+      } catch (error) {
+        console.error("Failed to regenerate message:", error);
+        resetSendingState();
+      }
+
+    } catch (error) {
+      console.error('Failed to regenerate message:', error);
+      resetSendingState();
+    }
+  };
+
+  const editMessage = async (messageId: string, newContent: string) => {
+    if (!user?.username || isSendingRef.current) {
+      return;
+    }
+
+    const resetSendingState = () => {
+      if (sendingTimeoutRef.current) clearTimeout(sendingTimeoutRef.current);
+      setIsSending(false);
+      isSendingRef.current = false;
+      
+      setTimeout(() => {
+        setIsThinking(false);
+      }, 150);
+    };
+
+    const startSendingState = () => {
+      setIsSending(true);
+      setIsThinking(true);
+      isSendingRef.current = true;
+
+      if (sendingTimeoutRef.current) clearTimeout(sendingTimeoutRef.current);
+      sendingTimeoutRef.current = setTimeout(() => {
+        console.warn("Force clearing isSending state after timeout");
+        resetSendingState();
+      }, 10000);
+    };
+
+    try {
+      startSendingState();
+
+      // Find the message to edit
+      const messageIndex = messages.findIndex(msg => msg.id === messageId);
+      if (messageIndex === -1) {
+        resetSendingState();
+        return;
+      }
+
+      const messageToEdit = messages[messageIndex];
+      if (!messageToEdit.isUser) {
+        resetSendingState();
+        return; // Can only edit user messages
+      }
+
+      // First, generate the new AI response with the edited content
+      const aiResponse = await geminiService.sendMessage(
+        user.username!,
+        currentDate,
+        newContent.trim(),
+        messages.slice(0, messageIndex) // Pass messages up to the edit point
+      );
+
+      // Only after we have the new response, delete messages and update
+      const messagesToDelete = messages.slice(messageIndex);
+      for (const msg of messagesToDelete) {
+        await deleteMessage(msg.id);
+      }
+
+      // Wait a bit for deletions to process
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Create the edited user message
+      const editedUserMessage = convertToFirebase({
+        content: newContent.trim(),
+        isUser: true,
+        userProfileImage: user.imageUrl,
+      });
+
+      await saveChatMessage(user.username, editedUserMessage, currentDate);
+
+      // Save the AI response
+      const aiMessage = convertToFirebase({
+        content: aiResponse,
+        isUser: false,
+      });
+
+      resetSendingState();
+      
+      await saveChatMessage(user.username!, aiMessage, currentDate);
+      
+      setTimeout(() => {
+        if (!isSendingRef.current) {
+          debouncedHistoryUpdate();
+        }
+      }, 300);
+
+    } catch (error) {
+      console.error('Failed to edit message:', error);
+      resetSendingState();
     }
   };
 
@@ -322,6 +521,8 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       messages,
       sendMessage,
       deleteMessage,
+      regenerateMessage,
+      editMessage,
       loadMessagesForDate,
       createNewChat,
       currentDate,

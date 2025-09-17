@@ -12,8 +12,11 @@ import {
   RiBookmarkFill,
   RiLoopRightFill,
   RiCheckLine,
+  RiFileCopyLine,
 } from "@remixicon/react";
 import { useBookmarks } from "@/contexts/bookmarks-context";
+import { useChat } from "@/contexts/chat-context";
+import { useState } from "react";
 
 type ChatMessageProps = {
   isUser?: boolean;
@@ -22,6 +25,8 @@ type ChatMessageProps = {
   messageId?: string;
   messageContent?: string;
   messageTimestamp?: Date;
+  onUserMessageClick?: (messageId: string, content: string) => void;
+  isSelected?: boolean;
 };
 
 export function ChatMessage({ 
@@ -30,8 +35,17 @@ export function ChatMessage({
   userProfileImage, 
   messageId, 
   messageContent, 
-  messageTimestamp 
+  messageTimestamp,
+  onUserMessageClick,
+  isSelected
 }: ChatMessageProps) {
+
+  const handleUserMessageClick = () => {
+    if (isUser && messageId && messageContent && onUserMessageClick) {
+      onUserMessageClick(messageId, messageContent);
+    }
+  };
+
   return (
     <article
       className={cn(
@@ -54,7 +68,11 @@ export function ChatMessage({
         height={40}
       />
       <div
-        className={cn(isUser ? "bg-muted px-4 py-3 rounded-xl" : "space-y-4")}
+        className={cn(
+          isUser ? "bg-muted px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/80" : "space-y-4",
+          isSelected && "ring-2 ring-primary bg-primary/10"
+        )}
+        onClick={handleUserMessageClick}
       >
         <div className="flex flex-col gap-3">
           <p className="sr-only">{isUser ? "You" : "Bart"} said:</p>
@@ -121,6 +139,8 @@ function MessageActions({
   userProfileImage 
 }: MessageActionsProps) {
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
+  const { regenerateMessage } = useChat();
+  const [justCopied, setJustCopied] = useState(false);
   const bookmarked = isBookmarked(messageId);
 
   const handleBookmarkToggle = () => {
@@ -137,6 +157,20 @@ function MessageActions({
     }
   };
 
+  const handleRefresh = async () => {
+    await regenerateMessage(messageId);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(messageContent);
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
   return (
     <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px dark:bg-sidebar dark:border-white/[0.08]">
       <TooltipProvider delayDuration={0}>
@@ -146,7 +180,17 @@ function MessageActions({
           onClick={handleBookmarkToggle}
           isActive={bookmarked}
         />
-        <ActionButton icon={<RiLoopRightFill size={16} />} label="Refresh" />
+        <ActionButton 
+          icon={<RiLoopRightFill size={16} />} 
+          label="Refresh" 
+          onClick={handleRefresh}
+        />
+        <ActionButton 
+          icon={justCopied ? <RiCheckLine size={16} /> : <RiFileCopyLine size={16} />} 
+          label={justCopied ? "Copied!" : "Copy"}
+          onClick={handleCopy}
+          isActive={justCopied}
+        />
       </TooltipProvider>
     </div>
   );
