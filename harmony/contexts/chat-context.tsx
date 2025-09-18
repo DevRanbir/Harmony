@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useSettings } from '@/contexts/settings-context';
 import { 
   saveChatMessage, 
   getChatMessages, 
@@ -12,6 +13,7 @@ import {
   hasExistingChats,
   getChatHistory,
   updateChatMetadata,
+  updateChatTitle,
   ChatMessage as FirebaseChatMessage 
 } from '@/lib/firebase-service';
 import { initializeUserChat } from '@/lib/chat-utils';
@@ -25,6 +27,12 @@ export interface ChatMessage {
   userProfileImage?: string;
 }
 
+export interface ReplyContext {
+  messageId: string;
+  content: string;
+  timestamp: Date;
+}
+
 interface ChatContextType {
   messages: ChatMessage[];
   sendMessage: (content: string) => Promise<void>;
@@ -36,6 +44,10 @@ interface ChatContextType {
   currentDate: string;
   isLoading: boolean;
   isSending: boolean;
+  replyContext: ReplyContext[];
+  addReplyContext: (messageId: string, content: string, timestamp: Date) => void;
+  removeReplyContext: (messageId: string) => void;
+  clearReplyContext: () => void;
   isThinking: boolean;
   onHistoryUpdate?: () => void;
 }
@@ -50,10 +62,12 @@ export function ChatProvider({ children, onHistoryUpdate }: {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isThinking, setIsThinking] = useState(false); // Separate thinking state for smoother transitions
+  const [replyContext, setReplyContext] = useState<ReplyContext[]>([]);
   const [currentDate, setCurrentDate] = useState<string>(() => 
     new Date().toISOString().split('T')[0]
   );
   const { user } = useUser();
+  const { getSystemPrompt } = useSettings();
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isInitializedRef = useRef(false);
   const currentSubscriptionDateRef = useRef<string>('');
@@ -92,6 +106,25 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       ...message,
       timestamp: Date.now(),
     };
+  };
+
+  // Reply context management functions
+  const addReplyContext = (messageId: string, content: string, timestamp: Date) => {
+    setReplyContext(prev => {
+      // Remove if already exists
+      const filtered = prev.filter(ctx => ctx.messageId !== messageId);
+      // Add new context, keep only last 3
+      const updated = [...filtered, { messageId, content, timestamp }];
+      return updated.slice(-3); // Keep only last 3
+    });
+  };
+
+  const removeReplyContext = (messageId: string) => {
+    setReplyContext(prev => prev.filter(ctx => ctx.messageId !== messageId));
+  };
+
+  const clearReplyContext = () => {
+    setReplyContext([]);
   };
 
   // Single effect to handle both initial load and date changes
@@ -192,6 +225,29 @@ export function ChatProvider({ children, onHistoryUpdate }: {
     };
   }, [user?.username, currentDate]);
 
+  // Helper function to get last 2 user messages and 2 AI messages for context
+  const getRecentMessages = (allMessages: ChatMessage[]): { sender: string; text: string }[] => {
+    // Get the last 4 messages (2 user + 2 AI) to keep context minimal
+    const recentMessages = allMessages.slice(-4);
+    return recentMessages.map(msg => ({ 
+      sender: msg.isUser ? 'user' : 'ai', 
+      text: msg.content 
+    }));
+  };
+
+  // Helper function to format user message with reply context
+  const formatMessageWithReplyContext = (content: string): string => {
+    if (replyContext.length === 0) {
+      return content;
+    }
+
+    const replyPart = replyContext
+      .map((ctx, index) => `[Reply ${index + 1}]: "${ctx.content.slice(0, 200)}${ctx.content.length > 200 ? '...' : ''}"`)
+      .join('\n');
+
+    return `${replyPart}\n\n[New Question]: ${content}`;
+  };
+
   const sendMessage = async (content: string) => {
     if (!user?.username || !content.trim() || isSendingRef.current) return;
 
@@ -222,6 +278,9 @@ export function ChatProvider({ children, onHistoryUpdate }: {
     try {
       startSendingState();
 
+      // Check if this is the first user message in the chat
+      const isFirstUserMessage = messages.filter(msg => msg.isUser).length === 0;
+
       // Create user message
       const userMessage = convertToFirebase({
         content: content.trim(),
@@ -233,12 +292,15 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       // Get AI response from Gemini immediately (no setTimeout delay)
       try {
-        // Get AI response with chat history
+        // Get AI response with limited chat history (last 4 messages) and user settings
+        const recentMessages = getRecentMessages(messages);
+        const messageWithContext = formatMessageWithReplyContext(content.trim());
         const aiResponse = await geminiService.sendMessage(
           user.username!,
           currentDate,
-          content.trim(),
-          messages.map(msg => ({ sender: msg.isUser ? 'user' : 'ai', text: msg.content })) // Transform messages to match expected structure
+          messageWithContext,
+          recentMessages, // Only send last 4 messages instead of entire chat history
+          getSystemPrompt() // Pass the system prompt based on user settings
         );
 
         const aiMessage = convertToFirebase({
@@ -250,6 +312,39 @@ export function ChatProvider({ children, onHistoryUpdate }: {
         resetSendingState();
         
         await saveChatMessage(user.username!, aiMessage, currentDate);
+
+        // Clear reply context after successful message
+        if (replyContext.length > 0) {
+          clearReplyContext();
+        }
+
+        // If this was the first user message, generate a chat title
+        if (isFirstUserMessage) {
+          try {
+            const titleResponse = await fetch('/api/chat/generate-title', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ message: content.trim() }),
+            });
+
+            if (titleResponse.ok) {
+              const { title } = await titleResponse.json();
+              
+              // Update the chat title using the proper service function
+              await updateChatTitle(user.username!, currentDate, title);
+              
+              // Trigger history update to refresh the UI with new title
+              setTimeout(() => {
+                debouncedHistoryUpdate();
+              }, 200);
+            }
+          } catch (error) {
+            console.error('Failed to generate chat title:', error);
+            // Don't throw, just log the error since the main functionality works
+          }
+        }
         
         // Update history with a delay to ensure UI has settled
         setTimeout(() => {
@@ -347,11 +442,15 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       // Generate new response with the same user input
       try {
+        // Get recent messages up to the point we're regenerating (limited context)
+        const messagesUpToRegeneration = messages.slice(0, messageIndex);
+        const recentMessages = getRecentMessages(messagesUpToRegeneration);
         const aiResponse = await geminiService.sendMessage(
           user.username!,
           currentDate,
           userMessage.content,
-          messages.slice(0, messageIndex).map(msg => ({ sender: msg.isUser ? 'user' : 'ai', text: msg.content })) // Transform messages to match expected structure
+          recentMessages, // Only send recent messages instead of entire history
+          getSystemPrompt() // Pass the system prompt based on user settings
         );
 
         const aiMessage = convertToFirebase({
@@ -426,11 +525,13 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       }
 
       // First, generate the new AI response with the edited content
+      const messagesUpToEdit = messages.slice(0, messageIndex);
+      const recentMessages = getRecentMessages(messagesUpToEdit);
       const aiResponse = await geminiService.sendMessage(
         user.username!,
         currentDate,
         newContent.trim(),
-        messages.slice(0, messageIndex).map(msg => ({ sender: msg.isUser ? 'user' : 'ai', text: msg.content })) // Transform messages to match expected structure
+        recentMessages // Only send recent messages instead of entire history
       );
 
       // Only after we have the new response, delete messages and update
@@ -529,6 +630,10 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       isLoading,
       isSending,
       isThinking,
+      replyContext,
+      addReplyContext,
+      removeReplyContext,
+      clearReplyContext,
     }}>
       {children}
     </ChatContext.Provider>

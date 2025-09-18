@@ -11,7 +11,7 @@ const chatSessions = new Map();
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
-    const { message, chatId, userId, previousMessages = [] } = await request.json();
+    const { message, chatId, userId, previousMessages = [], systemPrompt } = await request.json();
     
     if (!message || !chatId) {
       return NextResponse.json({ error: 'Message and chatId are required' }, { status: 400 });
@@ -27,11 +27,16 @@ export async function POST(request: NextRequest) {
     // Get or create chat session
     let chat = chatSessions.get(sessionKey);
     if (!chat) {
+      // Use custom system prompt if provided, otherwise use default
+      const defaultSystemPrompt = 'You are Harmony, an AI assistant developed by Ranbir as part of Project Harmony. You are friendly, helpful, and knowledgeable. Please introduce yourself as Harmony and mention that you were created by Ranbir. Keep your responses concise but informative. Always maintain a warm and professional tone. When presenting data in tables, use proper markdown table format with | symbols. For code, use markdown code blocks. Use markdown formatting for better readability including headers, lists, bold, italic, etc.';
+      
+      const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
+      
       // Build chat history from previous messages
       const history = [
         {
           role: 'user',
-          parts: [{ text: 'You are Harmony, an AI assistant developed by Ranbir as part of Project Harmony. You are friendly, helpful, and knowledgeable. Please introduce yourself as Harmony and mention that you were created by Ranbir. Keep your responses concise but informative. Always maintain a warm and professional tone. When presenting data in tables, use proper markdown table format with | symbols. For code, use markdown code blocks. Use markdown formatting for better readability including headers, lists, bold, italic, etc.' }],
+          parts: [{ text: finalSystemPrompt }],
         },
         {
           role: 'model',

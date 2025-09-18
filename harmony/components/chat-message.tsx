@@ -13,6 +13,7 @@ import {
   RiLoopRightFill,
   RiCheckLine,
   RiFileCopyLine,
+  RiReplyLine,
 } from "@remixicon/react";
 import { useBookmarks } from "@/contexts/bookmarks-context";
 import { useChat } from "@/contexts/chat-context";
@@ -27,6 +28,7 @@ type ChatMessageProps = {
   messageTimestamp?: Date;
   onUserMessageClick?: (messageId: string, content: string) => void;
   isSelected?: boolean;
+  isHighlighted?: boolean;
 };
 
 export function ChatMessage({ 
@@ -37,7 +39,8 @@ export function ChatMessage({
   messageContent, 
   messageTimestamp,
   onUserMessageClick,
-  isSelected
+  isSelected,
+  isHighlighted
 }: ChatMessageProps) {
 
   const handleUserMessageClick = () => {
@@ -51,6 +54,7 @@ export function ChatMessage({
       className={cn(
         "flex items-start gap-4 text-[15px] leading-relaxed",
         isUser && "justify-end",
+        isHighlighted && "bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-lg"
       )}
     >
       <img
@@ -99,17 +103,20 @@ type ActionButtonProps = {
   label: string;
   onClick?: () => void;
   isActive?: boolean;
+  disabled?: boolean;
 };
 
-function ActionButton({ icon, label, onClick, isActive }: ActionButtonProps) {
+function ActionButton({ icon, label, onClick, isActive, disabled }: ActionButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button 
-          onClick={onClick}
+          onClick={disabled ? undefined : onClick}
+          disabled={disabled}
           className={cn(
             "relative text-muted-foreground/80 hover:text-foreground transition-colors size-8 flex items-center justify-center before:absolute before:inset-y-1.5 before:left-0 before:w-px before:bg-border first:before:hidden first-of-type:rounded-s-lg last-of-type:rounded-e-lg focus-visible:z-10 outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring/70",
-            isActive && "text-primary hover:text-primary/80"
+            isActive && "text-primary hover:text-primary/80",
+            disabled && "opacity-50 cursor-not-allowed hover:text-muted-foreground/80"
           )}
         >
           {icon}
@@ -139,9 +146,10 @@ function MessageActions({
   userProfileImage 
 }: MessageActionsProps) {
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
-  const { regenerateMessage } = useChat();
+  const { regenerateMessage, replyContext, addReplyContext, removeReplyContext } = useChat();
   const [justCopied, setJustCopied] = useState(false);
   const bookmarked = isBookmarked(messageId);
+  const isInReplyContext = replyContext.some(ctx => ctx.messageId === messageId);
 
   const handleBookmarkToggle = () => {
     if (bookmarked) {
@@ -171,6 +179,20 @@ function MessageActions({
     }
   };
 
+  const handleReply = () => {
+    if (isInReplyContext) {
+      removeReplyContext(messageId);
+    } else {
+      // Only add if we haven't reached the limit of 3
+      if (replyContext.length < 3) {
+        addReplyContext(messageId, messageContent, messageTimestamp);
+      }
+    }
+  };
+
+  // Check if reply button should be disabled
+  const isReplyDisabled = !isInReplyContext && replyContext.length >= 3;
+
   return (
     <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px dark:bg-sidebar dark:border-white/[0.08]">
       <TooltipProvider delayDuration={0}>
@@ -186,11 +208,19 @@ function MessageActions({
           onClick={handleRefresh}
         />
         <ActionButton 
+          icon={<RiReplyLine size={16} />} 
+          label={isInReplyContext ? "Remove from reply" : isReplyDisabled ? "Maximum 3 replies selected" : "Reply to this"}
+          onClick={handleReply}
+          isActive={isInReplyContext}
+          disabled={isReplyDisabled}
+        />
+        <ActionButton 
           icon={justCopied ? <RiCheckLine size={16} /> : <RiFileCopyLine size={16} />} 
           label={justCopied ? "Copied!" : "Copy"}
           onClick={handleCopy}
           isActive={justCopied}
         />
+
       </TooltipProvider>
     </div>
   );

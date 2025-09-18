@@ -20,6 +20,7 @@ import {
   RiAttachment2,
   RiMicLine,
   RiLeafLine,
+  RiCloseLine,
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { FormattedMessage } from "@/components/formatted-message";
@@ -27,50 +28,91 @@ import { useRef, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useChat } from "@/contexts/chat-context";
+import { useSettings } from "@/contexts/settings-context";
 
 export default function Chat() {
 // Helper: detect if user is asking for a location (very basic, can be improved)
 function extractLocationQuery(text: string): string | null {
-  // Example: "show me mohali", "where is mohali", "location of mohali", etc.
-  const regex = /(?:show|where|location|map|find|directions|navigate|route|go to)[^\w]*(?:to|of)?\s*([a-zA-Z\s,]+)$/i;
-  const match = text.match(regex);
-  if (match && match[1]) {
-    return match[1].trim();
+  console.log("Checking location query for:", text); // Debug log
+  
+  // Enhanced patterns to catch more location queries
+  const patterns = [
+    // "where is mohali", "show me mohali", "location of mohali"
+    /(?:where\s+is|show\s+me|location\s+of|find\s+me|directions\s+to|navigate\s+to|route\s+to|go\s+to)\s+([a-zA-Z\s,.-]+?)(?:\?|$)/i,
+    // "mohali location", "mohali map", "mohali where"
+    /([a-zA-Z\s,.-]+)\s+(?:location|map|where|directions|navigate|route)(?:\?|$)/i,
+    // "map of mohali", "directions for mohali"
+    /(?:map\s+of|directions\s+for|route\s+for)\s+([a-zA-Z\s,.-]+?)(?:\?|$)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const location = match[1].trim();
+      console.log("Found potential location:", location); // Debug log
+      // Filter out very short or common words that might not be locations
+      if (location.length > 2 && !['me', 'you', 'it', 'this', 'that', 'here', 'there'].includes(location.toLowerCase())) {
+        console.log("Location validated:", location); // Debug log
+        return location;
+      }
+    }
   }
+  console.log("No location found"); // Debug log
   return null;
 }
 
 // Helper: fetch lat/lng from Google Maps Geocoding API
 async function fetchLatLng(location: string): Promise<{lat: number, lng: number, description: string} | null> {
   try {
+    console.log("Fetching coordinates for:", location); // Debug log
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return null;
+    if (!apiKey) {
+      console.log("No Google Maps API key found"); // Debug log
+      return null;
+    }
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
+    console.log("Making request to:", url); // Debug log
     const res = await fetch(url);
     const data = await res.json();
+    console.log("API response:", data); // Debug log
     if (data.status === "OK" && data.results.length > 0) {
       const { lat, lng } = data.results[0].geometry.location;
       const description = data.results[0].formatted_address;
+      console.log("Found coordinates:", { lat, lng, description }); // Debug log
       return { lat, lng, description };
     }
+    console.log("No valid results found"); // Debug log
     return null;
-  } catch {
+  } catch (error) {
+    console.error("Error fetching coordinates:", error); // Debug log
     return null;
   }
 }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuthContext();
-  const { messages, sendMessage, editMessage, isLoading, isSending, isThinking, currentDate } = useChat();
+  const { messages, sendMessage, editMessage, isLoading, isSending, isThinking, currentDate, replyContext, clearReplyContext, removeReplyContext } = useChat();
+  const { settings } = useSettings();
   const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(false);
   const [lastChatDate, setLastChatDate] = useState(currentDate);
   const [inputValue, setInputValue] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const router = useRouter();
 
   const scrollToBottom = (behavior: 'auto' | 'smooth' = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  const scrollToMessage = (messageId: string) => {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(messageId);
+      // Remove highlight after 2 seconds
+      setTimeout(() => setHighlightedMessageId(null), 2000);
+    }
   };
 
   // Reset scroll state when chat changes
@@ -100,6 +142,25 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
 
     const messageContent = inputValue.trim();
     setInputValue("");
+    
+    // Only check for location queries if writing style is set to "map-searches"
+    if (settings.writingStyle === 'map-searches') {
+      const locationQuery = extractLocationQuery(messageContent);
+      if (locationQuery) {
+        // Try to get coordinates for the location
+        const locationData = await fetchLatLng(locationQuery);
+        if (locationData) {
+          // Redirect to map page with location parameters
+          const mapUrl = `/map?lat=${locationData.lat}&lng=${locationData.lng}&location=${encodeURIComponent(locationData.description)}`;
+          router.push(mapUrl);
+          return;
+        } else {
+          // If location lookup fails, send as regular message to AI
+          await sendMessage(`I couldn't find the location "${locationQuery}" on the map. ${messageContent}`);
+          return;
+        }
+      }
+    }
     
     await sendMessage(messageContent);
   };
@@ -193,16 +254,17 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
             </div>
             
             {messages.map((message) => (
-              <ChatMessage 
-                key={message.id} 
-                isUser={message.isUser} 
-                userProfileImage={message.userProfileImage || user?.imageUrl}
-                messageId={message.id}
-                messageContent={message.content}
-                messageTimestamp={message.timestamp}
-                onUserMessageClick={handleUserMessageClick}
-                isSelected={editingMessageId === message.id}
-              >
+              <div key={message.id} data-message-id={message.id}>
+                <ChatMessage 
+                  isUser={message.isUser} 
+                  userProfileImage={message.userProfileImage || user?.imageUrl}
+                  messageId={message.id}
+                  messageContent={message.content}
+                  messageTimestamp={message.timestamp}
+                  onUserMessageClick={handleUserMessageClick}
+                  isSelected={editingMessageId === message.id}
+                  isHighlighted={highlightedMessageId === message.id}
+                >
                 {editingMessageId === message.id ? (
                   <div className="space-y-3">
                     <textarea
@@ -244,7 +306,8 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
                 ) : (
                   <FormattedMessage content={message.content} />
                 )}
-              </ChatMessage>
+                </ChatMessage>
+              </div>
             ))}
             
             {isLoading && (
@@ -272,6 +335,31 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
         {/* Footer */}
         <div className="sticky bottom-0 pt-4 md:pt-8 z-50">
           <div className="max-w-3xl mx-auto bg-background rounded-[20px] pb-4 md:pb-8">
+            {/* Reply tabs - attached to top border of form */}
+            {replyContext.length > 0 && (
+              <div className="flex gap-1 mb-2 px-2">
+                {replyContext.map((reply, index) => (
+                  <div 
+                    key={reply.messageId}
+                    className="group flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-t-lg border-t border-l border-r border-blue-200 dark:border-blue-800 text-sm cursor-pointer hover:bg-blue-150 dark:hover:bg-blue-900/50"
+                    onClick={() => scrollToMessage(reply.messageId)}
+                  >
+                    <span className="truncate max-w-32">
+                      {reply.content.length > 30 ? reply.content.substring(0, 30) + '...' : reply.content}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeReplyContext(reply.messageId);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full p-1 transition-opacity"
+                    >
+                      <RiCloseLine className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="relative rounded-[20px] border focus-within:border-input has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 [&:has(input:is(:disabled))_*]:pointer-events-none">
               <textarea
                 ref={textareaRef}

@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { BookmarksProvider } from '@/contexts/bookmarks-context';
 import { ChatWithHistoryProvider } from '@/contexts/chat-with-history-provider';
 import { ThemeProvider } from '@/contexts/theme-context';
+import { SettingsProvider } from '@/contexts/settings-context';
 import { RouteGuard } from '@/components/route-guard';
 import { PagePreloader } from '@/components/page-preloader';
 import { NavigationLoader } from '@/components/navigation-loader';
@@ -43,18 +44,20 @@ export default function RootLayout({
         <body className={`${fontSans.variable} font-sans antialiased`}>
           <ThemeProvider>
             <NavigationLoader />
-            <AuthProvider>
-              <BookmarksProvider>
-                <ChatWithHistoryProvider>
-                  <RouteGuard protectedRoutes={['/dashboard', '/admin', '/*/data']}>
-                    <PageTransition>
-                      {children}
-                    </PageTransition>
-                  </RouteGuard>
-                </ChatWithHistoryProvider>
-              </BookmarksProvider>
-              <PagePreloader />
-            </AuthProvider>
+            <SettingsProvider>
+              <AuthProvider>
+                <BookmarksProvider>
+                  <ChatWithHistoryProvider>
+                    <RouteGuard protectedRoutes={['/dashboard', '/admin', '/*/data']}>
+                      <PageTransition>
+                        {children}
+                      </PageTransition>
+                    </RouteGuard>
+                  </ChatWithHistoryProvider>
+                </BookmarksProvider>
+                <PagePreloader />
+              </AuthProvider>
+            </SettingsProvider>
           </ThemeProvider>
           {/* Clerk CAPTCHA container - prevent initialization errors */}
           <div id="clerk-captcha" style={{ display: 'none' }}></div>

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { useTheme } from "@/contexts/theme-context";
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
@@ -20,7 +21,9 @@ import {
 import { ScrollArea } from "@/components/scroll-area";
 import { ClientRouteGuard } from "@/components/client-route-guard";
 import { Button } from "@/components/button";
+import { Input } from "@/components/input";
 import { Badge } from "@/components/badge";
+import Dock from "@/components/Dock";
 import {
   RiMapPinLine,
   RiEarthLine,
@@ -29,21 +32,252 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
   RiCompassLine,
+  RiSearchLine,
+  RiRoadMapLine,
+  RiGlobalLine,
+  RiImageLine,
+  RiMapLine,
 } from "@remixicon/react";
-
-// Chandigarh University coordinates (Kharar, Punjab, India)
-const CHANDIGARH_UNIVERSITY = {
-  lat: 30.7687902,
-  lng: 76.5753719
-};
 
 export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapType, setMapType] = useState<'roadmap' | 'satellite' | 'hybrid' | 'terrain'>('hybrid');
   const [is3D, setIs3D] = useState(true);
+  const [searchValue, setSearchValue] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mapTypeIndex, setMapTypeIndex] = useState(2); // Start with hybrid (index 2)
+
+  // Helper: fetch search suggestions using actual Google Places API
+  const fetchSearchSuggestions = async (query: string): Promise<string[]> => {
+    if (!query || query.length < 2) return [];
+    
+    try {
+      // Use Google Maps Geocoding API for suggestions
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) return [query];
+      
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.status === "OK" && data.results) {
+        // Get top 4 suggestions from geocoding results
+        const suggestions = data.results
+          .slice(0, 4)
+          .map((result: any) => result.formatted_address)
+          .filter((address: string) => address.toLowerCase().includes(query.toLowerCase()));
+        
+        // Always include the original query as the first option
+        return [query, ...suggestions.filter((s: string) => s !== query)];
+      }
+      
+      // Fallback to just the query if no results
+      return [query];
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      return [query];
+    }
+  };
+
+  // Handle search input changes with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (searchValue.length >= 3) { // Increased to 3 characters for better results
+        const suggestions = await fetchSearchSuggestions(searchValue);
+        setSearchSuggestions(suggestions);
+        setShowSuggestions(suggestions.length > 0);
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 500); // Increased delay to reduce API calls
+
+    return () => clearTimeout(timeoutId);
+  }, [searchValue]);
+
+  // Helper: fetch additional place details
+  const getPlaceDetails = async (lat: number, lng: number): Promise<{
+    country?: string;
+    state?: string;
+    city?: string;
+    area?: string;
+    postalCode?: string;
+  }> => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) return {};
+      
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.status === "OK" && data.results.length > 0) {
+        const result = data.results[0];
+        const details: any = {};
+        
+        result.address_components?.forEach((component: any) => {
+          if (component.types.includes('country')) {
+            details.country = component.long_name;
+          }
+          if (component.types.includes('administrative_area_level_1')) {
+            details.state = component.long_name;
+          }
+          if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+            details.city = component.long_name;
+          }
+          if (component.types.includes('sublocality_level_1') || component.types.includes('neighborhood')) {
+            details.area = component.long_name;
+          }
+          if (component.types.includes('postal_code')) {
+            details.postalCode = component.long_name;
+          }
+        });
+        
+        return details;
+      }
+      return {};
+    } catch (error) {
+      console.error("Error fetching place details:", error);
+      return {};
+    }
+  };
+
+  // Helper: fetch lat/lng from Google Maps Geocoding API
+  const searchPlace = async (query: string): Promise<{lat: number, lng: number, description: string} | null> => {
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) return null;
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.status === "OK" && data.results.length > 0) {
+        const { lat, lng } = data.results[0].geometry.location;
+        const description = data.results[0].formatted_address;
+        return { lat, lng, description };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error searching place:", error);
+      return null;
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchValue.trim() || isSearching) return;
+    
+    setIsSearching(true);
+    setShowSuggestions(false); // Hide suggestions while searching
+    
+    const locationData = await searchPlace(searchValue);
+    setIsSearching(false);
+    
+    if (locationData) {
+      // Clear suggestions after successful search
+      setSearchSuggestions([]);
+      // Update URL with new location
+      const newUrl = `/map?lat=${locationData.lat}&lng=${locationData.lng}&location=${encodeURIComponent(locationData.description)}`;
+      router.push(newUrl);
+    } else {
+      // Show error or keep current view
+      console.warn(`No results found for: ${searchValue}`);
+      // You could add a toast notification here
+    }
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setSearchSuggestions([]); // Also clear suggestions on escape
+    }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchValue(suggestion);
+    setShowSuggestions(false);
+    setSearchSuggestions([]); // Clear suggestions after selection
+    setIsSearching(true);
+    
+    // Trigger search with the selected suggestion
+    searchPlace(suggestion).then(locationData => {
+      setIsSearching(false);
+      if (locationData) {
+        const newUrl = `/map?lat=${locationData.lat}&lng=${locationData.lng}&location=${encodeURIComponent(locationData.description)}`;
+        router.push(newUrl);
+      } else {
+        console.warn(`No results found for suggestion: ${suggestion}`);
+      }
+    }).catch(error => {
+      setIsSearching(false);
+      console.error("Error searching suggestion:", error);
+    });
+  };
+  // Get location from URL parameters
+  const urlLat = searchParams.get('lat');
+  const urlLng = searchParams.get('lng');
+  const urlLocation = searchParams.get('location');
+  
+  const targetLocation = (urlLat && urlLng) ? {
+    lat: parseFloat(urlLat),
+    lng: parseFloat(urlLng)
+  } : null;
+
+  // Default map center (India) when no specific location is provided
+  const defaultCenter = {
+    lat: 20.5937,
+    lng: 78.9629
+  };
+
+  // Map type cycle function
+  const mapTypes = ['roadmap', 'satellite', 'hybrid', 'terrain'] as const;
+  const mapTypeIcons = [RiRoadMapLine, RiImageLine, RiGlobalLine, RiMapLine];
+  const mapTypeLabels = ['Roadmap', 'Satellite', 'Hybrid', 'Terrain'];
+
+  const toggleMapType = () => {
+    const nextIndex = (mapTypeIndex + 1) % mapTypes.length;
+    setMapTypeIndex(nextIndex);
+    handleMapTypeChange(mapTypes[nextIndex]);
+  };
+
+  // Dock items for map controls
+  const dockItems = [
+    {
+      icon: React.createElement(mapTypeIcons[mapTypeIndex], { size: 20, className: "text-foreground" }),
+      label: mapTypeLabels[mapTypeIndex],
+      onClick: toggleMapType,
+      className: 'bg-primary/20'
+    },
+    {
+      icon: <RiEarthLine size={20} className="text-foreground" />,
+      label: is3D ? 'Disable 3D' : 'Enable 3D',
+      onClick: () => toggle3D(),
+      className: is3D ? 'bg-primary/20' : ''
+    },
+    {
+      icon: <RiZoomInLine size={20} className="text-foreground" />,
+      label: 'Zoom In',
+      onClick: () => zoomIn()
+    },
+    {
+      icon: <RiZoomOutLine size={20} className="text-foreground" />,
+      label: 'Zoom Out',
+      onClick: () => zoomOut()
+    },
+    {
+      icon: <RiCompassLine size={20} className="text-foreground" />,
+      label: 'Reset View',
+      onClick: () => resetView()
+    }
+  ];
 
   // Dark mode Google Maps styles
   const darkMapStyles = [
@@ -173,8 +407,8 @@ export default function MapPage() {
         
         if (mapRef.current) {
           const mapInstance = new Map(mapRef.current, {
-            center: CHANDIGARH_UNIVERSITY,
-            zoom: 17,
+            center: targetLocation || defaultCenter,
+            zoom: targetLocation ? 17 : 5,
             mapTypeId: mapType,
             tilt: is3D ? 45 : 0, // Enable 3D view
             heading: 90, // Rotation angle
@@ -188,81 +422,95 @@ export default function MapPage() {
             styles: resolvedTheme === 'dark' ? darkMapStyles : lightMapStyles
           });
 
-          let marker;
-          
-          if (AdvancedMarkerElement) {
-            // Create a custom marker element
-            const markerElement = document.createElement('div');
-            markerElement.innerHTML = `
-              <div style="
-                background: #4F46E5;
-                border: 3px solid ${resolvedTheme === 'dark' ? '#374151' : 'white'};
-                border-radius: 50%;
-                width: 24px;
-                height: 24px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 2px 8px rgba(0,0,0,${resolvedTheme === 'dark' ? '0.6' : '0.3'});
-              ">
-                <div style="
-                  background: ${resolvedTheme === 'dark' ? '#374151' : 'white'};
-                  border-radius: 50%;
-                  width: 8px;
-                  height: 8px;
-                "></div>
-              </div>
-            `;
-
-            // Add marker for Chandigarh University using AdvancedMarkerElement
-            marker = new AdvancedMarkerElement({
-              position: CHANDIGARH_UNIVERSITY,
-              map: mapInstance,
-              title: 'Chandigarh University',
-              content: markerElement
-            });
-          } else {
-            // Fallback to classic Marker
-            marker = new google.maps.Marker({
-              position: CHANDIGARH_UNIVERSITY,
-              map: mapInstance,
-              title: 'Chandigarh University',
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 12,
-                fillColor: '#4F46E5',
-                fillOpacity: 0.9,
-                strokeWeight: 3,
-                strokeColor: '#FFFFFF',
-              }
-            });
-          }
-
-          // Add info window
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div class="p-4 max-w-sm ${resolvedTheme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}">
-                <h3 class="font-bold text-lg ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'}">Chandigarh University</h3>
-                <p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} mt-2">NH-95, Chandigarh-Ludhiana Highway, Mohali, Punjab 140413</p>
-                <div class="mt-3 flex gap-2">
-                  <span class="px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-800'} text-xs rounded-full">University</span>
-                  <span class="px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-green-800 text-green-200' : 'bg-green-100 text-green-800'} text-xs rounded-full">Educational</span>
-                </div>
-              </div>
-            `
-          });
-
-          marker.addListener('click', () => {
-            infoWindow.open(mapInstance, marker);
-          });
-
           setMap(mapInstance);
           setMapLoaded(true);
 
-          // Auto-open info window after a short delay
-          setTimeout(() => {
-            infoWindow.open(mapInstance, marker);
-          }, 1000);
+          // Only create marker if there's a target location from URL parameters
+          if (targetLocation) {
+            let marker;
+            
+            if (AdvancedMarkerElement) {
+              // Create a custom marker element
+              const markerElement = document.createElement('div');
+              markerElement.innerHTML = `
+                <div style="
+                  background: #4F46E5;
+                  border: 3px solid ${resolvedTheme === 'dark' ? '#374151' : 'white'};
+                  border-radius: 50%;
+                  width: 24px;
+                  height: 24px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0 2px 8px rgba(0,0,0,${resolvedTheme === 'dark' ? '0.6' : '0.3'});
+                ">
+                  <div style="
+                    background: ${resolvedTheme === 'dark' ? '#374151' : 'white'};
+                    border-radius: 50%;
+                    width: 8px;
+                    height: 8px;
+                  "></div>
+                </div>
+              `;
+
+              // Add marker for the target location using AdvancedMarkerElement
+              marker = new AdvancedMarkerElement({
+                position: targetLocation,
+                map: mapInstance,
+                title: urlLocation || 'Location',
+                content: markerElement
+              });
+            } else {
+              // Fallback to classic Marker
+              marker = new google.maps.Marker({
+                position: targetLocation,
+                map: mapInstance,
+                title: urlLocation || 'Location',
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 12,
+                  fillColor: '#4F46E5',
+                  fillOpacity: 0.9,
+                  strokeWeight: 3,
+                  strokeColor: '#FFFFFF',
+                }
+              });
+            }
+
+            // Add info window with enhanced details
+            const placeDetails = await getPlaceDetails(targetLocation.lat, targetLocation.lng);
+            const infoWindow = new google.maps.InfoWindow({
+              content: `
+                <div class="p-4 max-w-sm ${resolvedTheme === 'dark' ? 'bg-black text-white' : 'bg-white text-gray-900'}">
+                  <h3 class="font-bold text-lg ${resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'}">${urlLocation || 'Location'}</h3>
+                  <div class="mt-2 space-y-2">
+                    <p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm">
+                      <strong>Coordinates:</strong><br>
+                      Lat: ${targetLocation.lat.toFixed(6)}, Lng: ${targetLocation.lng.toFixed(6)}
+                    </p>
+                    ${placeDetails.area ? `<p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm"><strong>Area:</strong> ${placeDetails.area}</p>` : ''}
+                    ${placeDetails.city ? `<p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm"><strong>City:</strong> ${placeDetails.city}</p>` : ''}
+                    ${placeDetails.state ? `<p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm"><strong>State:</strong> ${placeDetails.state}</p>` : ''}
+                    ${placeDetails.country ? `<p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm"><strong>Country:</strong> ${placeDetails.country}</p>` : ''}
+                    ${placeDetails.postalCode ? `<p class="${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm"><strong>Postal Code:</strong> ${placeDetails.postalCode}</p>` : ''}
+                  </div>
+                  <div class="mt-3 flex gap-2">
+                    <span class="px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-800'} text-xs rounded-full">📍 Location</span>
+                    ${placeDetails.city ? `<span class="px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-green-800 text-green-200' : 'bg-green-100 text-green-800'} text-xs rounded-full">🏙️ ${placeDetails.city}</span>` : ''}
+                  </div>
+                </div>
+              `
+            });
+
+            marker.addListener('click', () => {
+              infoWindow.open(mapInstance, marker);
+            });
+
+            // Auto-open info window after a short delay
+            setTimeout(() => {
+              infoWindow.open(mapInstance, marker);
+            }, 1000);
+          }
         }
       } catch (error) {
         console.error('Error loading Google Maps:', error);
@@ -270,7 +518,7 @@ export default function MapPage() {
     };
 
     initializeMap();
-  }, [mapType, is3D, resolvedTheme]);
+  }, [mapType, is3D, resolvedTheme, targetLocation?.lat, targetLocation?.lng, urlLocation]);
 
   const handleMapTypeChange = (newMapType: typeof mapType) => {
     setMapType(newMapType);
@@ -302,8 +550,9 @@ export default function MapPage() {
 
   const resetView = () => {
     if (map) {
-      map.setCenter(CHANDIGARH_UNIVERSITY);
-      map.setZoom(17);
+      const centerLocation = targetLocation || defaultCenter;
+      map.setCenter(centerLocation);
+      map.setZoom(targetLocation ? 17 : 5);
       map.setTilt(45);
       map.setHeading(90);
     }
@@ -334,97 +583,62 @@ export default function MapPage() {
                 </div>
               </header>
 
-              <div className="absolute inset-0 top-[73px]">
-                {/* Map Controls */}
-                <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-                  {/* Map Type Controls */}
-                  <div className="bg-background border border-border rounded-lg shadow-lg p-2 space-y-2 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
-                    <div className="text-xs font-medium text-muted-foreground px-2">Map Type</div>
-                    <div className="grid grid-cols-2 gap-1">
-                      {(['roadmap', 'satellite', 'hybrid', 'terrain'] as const).map((type) => (
-                        <Button
-                          key={type}
-                          variant={mapType === type ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => handleMapTypeChange(type)}
-                          className="h-8 text-xs capitalize transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95]"
+              {/* Search Bar */}
+              <div className="px-8 pt-2 bg-transparent sticky top-[73px] z-20 before:absolute before:bottom-0 before:h-px">
+                <div className="max-w mx-auto relative">
+                  <div className="relative">
+                    <RiSearchLine className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70 w-4 h-4" />
+                    <Input
+                      type="search"
+                      placeholder="Search for cities, landmarks, addresses..."
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
+                      onKeyDown={handleSearchKeyPress}
+                      onFocus={() => searchSuggestions.length > 0 && setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      className="pl-10 pr-20"
+                      disabled={isSearching}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSearch}
+                      disabled={!searchValue.trim() || isSearching}
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7"
+                    >
+                      {isSearching ? "..." : "Search"}
+                    </Button>
+                  </div>
+                  
+                  {/* Search Suggestions Dropdown */}
+                  {showSuggestions && searchSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto z-50">
+                      {searchSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          className="w-full text-left px-4 py-2 hover:bg-muted/50 text-sm border-b border-border/50 last:border-b-0 transition-colors"
+                          onClick={() => handleSuggestionClick(suggestion)}
                         >
-                          {type}
-                        </Button>
+                          <div className="flex items-center gap-2">
+                            <RiMapPinLine className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{suggestion}</span>
+                          </div>
+                        </button>
                       ))}
                     </div>
-                  </div>
-
-                  {/* View Controls */}
-                  <div className="bg-background border border-border rounded-lg shadow-lg p-2 space-y-2 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
-                    <Button
-                      variant={is3D ? "default" : "ghost"}
-                      size="sm"
-                      onClick={toggle3D}
-                      className="w-full h-8 text-xs transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95]"
-                    >
-                      <RiEarthLine className="w-3 h-3 mr-1" />
-                      3D View
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={resetView}
-                      className="w-full h-8 text-xs transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95]"
-                    >
-                      <RiCompassLine className="w-3 h-3 mr-1" />
-                      Reset
-                    </Button>
-                  </div>
-
-                  {/* Zoom Controls */}
-                  <div className="bg-background border border-border rounded-lg shadow-lg p-1 space-y-1 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={zoomIn}
-                      className="w-full h-8 justify-center p-0 transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95]"
-                    >
-                      <RiZoomInLine className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={zoomOut}
-                      className="w-full h-8 justify-center p-0 transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95]"
-                    >
-                      <RiZoomOutLine className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                {/* Location Info */}
-                <div className="absolute bottom-4 left-4 z-10">
-                  <div className="bg-background border border-border rounded-lg shadow-lg p-4 max-w-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <RiMapPinLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <h3 className="font-semibold text-foreground">Current Location</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">Chandigarh University</p>
-                    <p className="text-xs text-muted-foreground">Kharar, Punjab, India</p>
-                    <div className="mt-3 flex gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        Educational Campus
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        University
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
+              <div className="absolute inset-0 top-[130px]">
                 {/* Loading State */}
                 {!mapLoaded && (
-                  <div className="absolute inset-0 bg-background flex items-center justify-center">
+                  <div className="absolute inset-0 bg-background flex items-center justify-center z-10">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-2 border-muted-foreground/30 border-t-foreground mb-4 mx-auto"></div>
                       <p className="text-foreground">Loading 3D Map...</p>
-                      <p className="text-sm text-muted-foreground mt-1">Chandigarh University</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {urlLocation ? urlLocation : 'Interactive Map'}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -436,6 +650,18 @@ export default function MapPage() {
                   style={{ minHeight: '500px' }}
                   onError={(e) => console.error('Map container error:', e)}
                 />
+
+                {/* Dock Controls at Bottom */}
+                <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 z-20">
+                  <Dock
+                    items={dockItems}
+                    className="bg-background/80 backdrop-blur-md border border-border/50 shadow-lg"
+                    panelHeight={64}
+                    baseItemSize={48}
+                    magnification={64}
+                    distance={180}
+                  />
+                </div>
               </div>
         </div>
       </div>

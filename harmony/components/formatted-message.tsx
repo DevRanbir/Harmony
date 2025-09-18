@@ -40,18 +40,20 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
           </tbody>
         ),
         p: ({ children }) => (
-          <p className="mb-2 last:mb-0" style={{ whiteSpace: 'pre-wrap' }}>
+          <div className="mb-2 last:mb-0" style={{ whiteSpace: 'pre-wrap' }}>
             {children}
-          </p>
+          </div>
+        ),
+        pre: ({ children }) => (
+          <div className="bg-black/5 dark:bg-white/5 border border-white/20 dark:border-white/20 rounded-md p-3 my-2 overflow-x-auto">
+            {children}
+          </div>
         ),
         code: ({ inline, className, children, ...props }: { node?: unknown; inline?: boolean; className?: string; children?: React.ReactNode }) => {
-          // Removed unused 'match' variable
           return !inline ? (
-            <pre className="bg-black/5 dark:bg-white/5 border border-white/20 dark:border-white/20 rounded-md p-3 my-2 overflow-x-auto">
-              <code className={className} {...props}>
-                {children}
-              </code>
-            </pre>
+            <code className={`block ${className || ''}`} {...props}>
+              {children}
+            </code>
           ) : (
             <code className="bg-black/5 dark:bg-white/5 border border-white/20 dark:border-white/20 px-1 py-0.5 rounded text-sm" {...props}>
               {children}

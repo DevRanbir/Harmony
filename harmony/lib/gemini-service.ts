@@ -18,7 +18,8 @@ export class GeminiService {
     userId: string, 
     chatId: string, 
     message: string,
-    previousMessages: { sender: string; text: string }[] = []
+    previousMessages: { sender: string; text: string }[] = [],
+    systemPrompt?: string
   ): Promise<string> {
     try {
       const response = await fetch('/api/chat/gemini', {
@@ -31,6 +32,7 @@ export class GeminiService {
           chatId,
           userId,
           previousMessages,
+          systemPrompt,
         }),
       });
 
