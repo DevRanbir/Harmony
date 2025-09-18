@@ -18,17 +18,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/breadcrumb";
-import { ScrollArea } from "@/components/scroll-area";
 import { ClientRouteGuard } from "@/components/client-route-guard";
 import { Button } from "@/components/button";
 import { Input } from "@/components/input";
-import { Badge } from "@/components/badge";
 import Dock from "@/components/Dock";
 import {
   RiMapPinLine,
   RiEarthLine,
-  RiNavigationLine,
-  RiCameraSwitchLine,
   RiZoomInLine,
   RiZoomOutLine,
   RiCompassLine,
@@ -38,6 +34,31 @@ import {
   RiImageLine,
   RiMapLine,
 } from "@remixicon/react";
+
+// TypeScript interfaces for Google Maps API responses
+interface GeocodeAddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
+interface GeocodeResult {
+  formatted_address: string;
+  address_components?: GeocodeAddressComponent[];
+}
+
+interface GeocodeResponse {
+  status: string;
+  results: GeocodeResult[];
+}
+
+interface LocationDetails {
+  country?: string;
+  state?: string;
+  city?: string;
+  area?: string;
+  postalCode?: string;
+}
 
 export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -65,13 +86,13 @@ export default function MapPage() {
       
       const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${apiKey}`;
       const res = await fetch(url);
-      const data = await res.json();
+      const data: GeocodeResponse = await res.json();
       
       if (data.status === "OK" && data.results) {
         // Get top 4 suggestions from geocoding results
         const suggestions = data.results
           .slice(0, 4)
-          .map((result: any) => result.formatted_address)
+          .map((result: GeocodeResult) => result.formatted_address)
           .filter((address: string) => address.toLowerCase().includes(query.toLowerCase()));
         
         // Always include the original query as the first option
@@ -116,13 +137,13 @@ export default function MapPage() {
       
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
       const res = await fetch(url);
-      const data = await res.json();
+      const data: GeocodeResponse = await res.json();
       
       if (data.status === "OK" && data.results.length > 0) {
         const result = data.results[0];
-        const details: any = {};
+        const details: LocationDetails = {};
         
-        result.address_components?.forEach((component: any) => {
+        result.address_components?.forEach((component: GeocodeAddressComponent) => {
           if (component.types.includes('country')) {
             details.country = component.long_name;
           }
