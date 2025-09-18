@@ -27,6 +27,7 @@ import {
 import { ClientRouteGuard } from "@/components/client-route-guard";
 import { useBookmarks } from "@/contexts/bookmarks-context";
 import { ChatMessage } from "@/components/chat-message";
+import { FormattedMessage } from "@/components/formatted-message";
 import {
   RiBookmarkLine,
   RiDeleteBinLine,
@@ -35,7 +36,10 @@ import {
   RiFilterLine,
   RiSortAsc,
   RiSortDesc,
+  RiFileCopyLine,
+  RiCheckLine,
 } from "@remixicon/react";
+import { useState as useReactState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useMemo } from "react";
 
@@ -44,10 +48,10 @@ export default function BookmarksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterBy, setFilterBy] = useState("all");
+  const [copiedId, setCopiedId] = useReactState<string | null>(null);
 
   const filteredAndSortedBookmarks = useMemo(() => {
     let filtered = bookmarks;
-
     // Apply search filter
     if (searchQuery.trim()) {
       filtered = filtered.filter(bookmark =>
@@ -71,7 +75,7 @@ export default function BookmarksPage() {
                    bookmark.content.includes('const ') || 
                    bookmark.content.includes('import ') ||
                    bookmark.content.includes('export ') ||
-                   bookmark.content.includes('{') && bookmark.content.includes('}');
+                   (bookmark.content.includes('{') && bookmark.content.includes('}'));
           case "today":
             const today = new Date();
             const bookmarkDate = new Date(bookmark.bookmarkedAt);
@@ -111,6 +115,45 @@ export default function BookmarksPage() {
 
   const handleRemoveBookmark = (id: string) => {
     removeBookmark(id);
+  };
+
+  // Helper to parse markdown table and convert to dictionary-like string
+  function markdownTableToDict(markdown: string): string | null {
+    // Find the first markdown table in the string
+    const tableRegex = /((?:^|\n)\|.+\|\n\|[\s:-]+\|(?:\n\|.*\|)+)/m;
+    const match = markdown.match(tableRegex);
+    if (!match) return null;
+    const table = match[1].trim();
+    const lines = table.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 3) return null;
+    const headers = lines[0].split('|').map(h => h.trim()).filter(Boolean);
+    // Remove separator row
+    const rows = lines.slice(2).map(row => row.split('|').map(cell => cell.trim()).filter(Boolean));
+    // Build dictionary-like string
+    let dictString = '';
+    rows.forEach((row, i) => {
+      dictString += `Row ${i+1}: {\n`;
+      headers.forEach((header, j) => {
+        dictString += `  ${header}: ${row[j] ?? ''}\n`;
+      });
+      dictString += '}\n';
+    });
+    return dictString.trim();
+  }
+
+  const handleCopyBookmark = async (content: string, id: string) => {
+    try {
+      let toCopy = content;
+      const dict = markdownTableToDict(content);
+      if (dict) {
+        toCopy = dict;
+      }
+      await navigator.clipboard.writeText(toCopy);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch (e) {
+      // Optionally handle error
+    }
   };
 
   return (
@@ -278,15 +321,30 @@ export default function BookmarksPage() {
                                   Bookmarked {formatDistanceToNow(bookmark.bookmarkedAt, { addSuffix: true })}
                                 </span>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveBookmark(bookmark.id)}
-                                className="h-6 px-2 text-muted-foreground hover:text-destructive"
-                              >
-                                <RiDeleteBinLine size={12} />
-                                <span className="sr-only">Remove bookmark</span>
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopyBookmark(bookmark.content, bookmark.id)}
+                                  className="h-6 px-2 text-muted-foreground hover:text-foreground"
+                                >
+                                  {copiedId === bookmark.id ? (
+                                    <RiCheckLine size={12} />
+                                  ) : (
+                                    <RiFileCopyLine size={12} />
+                                  )}
+                                  <span className="sr-only">Copy bookmark</span>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveBookmark(bookmark.id)}
+                                  className="h-6 px-2 text-muted-foreground hover:text-destructive"
+                                >
+                                  <RiDeleteBinLine size={12} />
+                                  <span className="sr-only">Remove bookmark</span>
+                                </Button>
+                              </div>
                             </div>
                             
                             {/* Message */}
@@ -294,7 +352,7 @@ export default function BookmarksPage() {
                               isUser={bookmark.isUser} 
                               userProfileImage={bookmark.userProfileImage}
                             >
-                              <p style={{ whiteSpace: 'pre-wrap' }}>{bookmark.content}</p>
+                              <FormattedMessage content={bookmark.content} />
                             </ChatMessage>
                             
                             {/* Separator */}

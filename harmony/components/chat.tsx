@@ -24,10 +24,40 @@ import {
 import { ChatMessage } from "@/components/chat-message";
 import { FormattedMessage } from "@/components/formatted-message";
 import { useRef, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useChat } from "@/contexts/chat-context";
 
 export default function Chat() {
+// Helper: detect if user is asking for a location (very basic, can be improved)
+function extractLocationQuery(text: string): string | null {
+  // Example: "show me mohali", "where is mohali", "location of mohali", etc.
+  const regex = /(?:show|where|location|map|find|directions|navigate|route|go to)[^\w]*(?:to|of)?\s*([a-zA-Z\s,]+)$/i;
+  const match = text.match(regex);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return null;
+}
+
+// Helper: fetch lat/lng from Google Maps Geocoding API
+async function fetchLatLng(location: string): Promise<{lat: number, lng: number, description: string} | null> {
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return null;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status === "OK" && data.results.length > 0) {
+      const { lat, lng } = data.results[0].geometry.location;
+      const description = data.results[0].formatted_address;
+      return { lat, lng, description };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuthContext();
@@ -37,6 +67,7 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const router = useRouter();
 
   const scrollToBottom = (behavior: 'auto' | 'smooth' = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
