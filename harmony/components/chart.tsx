@@ -21,6 +21,8 @@ import {
   Scatter,
 } from "recharts";
 import { useTheme } from "@/contexts/theme-context";
+import { CopyToImageButton } from "@/components/copy-to-image-button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface ChartDataPoint {
   [key: string]: string | number;
@@ -46,10 +48,12 @@ interface ChartProps {
 const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const chartRef = React.useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Responsive dimensions based on screen size
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const chartHeight = config.height || (isMobile ? 300 : 400);
+  const isTablet = typeof window !== 'undefined' && window.innerWidth < 1024 && !isMobile;
+  const chartHeight = config.height || (isMobile ? 250 : isTablet ? 320 : 400);
 
   // Theme-based color palette
   const getThemeColors = () => {
@@ -124,11 +128,13 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
   // Render different chart types
   const renderChart = (): React.ReactElement => {
     const commonProps = {
-      width: config.width || (isMobile ? 350 : 600),
+      width: config.width || (isMobile ? 320 : isTablet ? 500 : 600),
       height: chartHeight,
       data: config.data,
       margin: isMobile 
-        ? { top: 10, right: 15, left: 10, bottom: 10 }
+        ? { top: 8, right: 10, left: 5, bottom: 8 }
+        : isTablet
+        ? { top: 15, right: 20, left: 15, bottom: 15 }
         : { top: 20, right: 30, left: 20, bottom: 20 },
     };
 
@@ -265,6 +271,13 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
         );
 
       case "pie":
+        // Calculate responsive radius based on container size
+        const maxRadius = Math.min(
+          (config.width || (isMobile ? 320 : isTablet ? 500 : 600)) / 3,
+          chartHeight / 3
+        );
+        const pieRadius = Math.min(maxRadius, isMobile ? 65 : isTablet ? 90 : 120);
+        
         return (
           <PieChart {...commonProps}>
             <Pie
@@ -273,7 +286,7 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
               cy="50%"
               labelLine={false}
               label={({ name, percent }: any) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
-              outerRadius={150}
+              outerRadius={pieRadius}
               fill={colors.primary}
               dataKey={config.yKey || "value"}
             >
@@ -320,25 +333,64 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
   };
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full ${isMobile ? 'mb-4 flex flex-col items-center' : ''} ${className}`}>
       {config.title && (
-        <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
+        <h3 className={`font-semibold text-foreground mb-4 text-center ${isMobile ? 'text-base' : 'text-lg'}`}>
           {config.title}
         </h3>
       )}
-      <div className="bg-transparent rounded-lg border border-border/30 p-4 transition-none">
-        <div className="w-full overflow-hidden">
-          <ResponsiveContainer width="100%" height={chartHeight} minWidth={300}>
-            {renderChart()}
-          </ResponsiveContainer>
+      
+      <div className="relative group w-full flex justify-center">
+        <div 
+          ref={chartRef}
+          className={`bg-transparent rounded-lg border border-border/30 transition-none ${
+            isMobile ? 'p-1 w-full max-w-[calc(100vw-1rem)]' : 'p-4'
+          }`}
+        >
+          <div className="w-full overflow-hidden flex justify-center">
+            <ResponsiveContainer 
+              width="100%" 
+              height={chartHeight} 
+              minWidth={isMobile ? 280 : config.type === 'pie' ? 350 : 300}
+              minHeight={isMobile ? 200 : config.type === 'pie' ? 350 : 250}
+            >
+              {renderChart()}
+            </ResponsiveContainer>
+          </div>
+
         </div>
         
-        {/* Chart type indicator */}
-        <div className="flex items-center justify-center mt-3 pt-3 border-t border-border/20">
-          <span className="text-xs text-muted-foreground bg-background/20 px-2 py-1 rounded-full">
-            {config.type.charAt(0).toUpperCase() + config.type.slice(1)} Chart
-          </span>
-        </div>
+        {/* Copy button - shows on hover, hidden on mobile for better touch experience */}
+        {!isMobile && (
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <CopyToImageButton
+              targetRef={chartRef}
+              filename={`${config.type}-chart`}
+              variant="outline"
+              size="sm"
+              showText={true}
+              className="bg-background/80 backdrop-blur-sm border-border/40 hover:bg-accent shadow-sm"
+            />
+          </div>
+        )}
+      </div>
+      
+      {/* Chart description */}
+      <div className={`mt-2 text-muted-foreground flex items-center gap-2 ${isMobile ? 'text-xs justify-center' : 'text-xs'}`}>
+        <span className="inline-flex items-center gap-1">
+          <svg className="w-6 h-6 text-gray-400 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6.025A7.5 7.5 0 1 0 17.975 14H10V6.025Z"/>
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 3c-.169 0-.334.014-.5.025V11h7.975c.011-.166.025-.331.025-.5A7.5 7.5 0 0 0 13.5 3Z"/>
+          </svg>
+
+          {config.type.charAt(0).toUpperCase() + config.type.slice(1)} Chart
+        </span>
+        {!isMobile && (
+          <>
+            <span className="text-muted-foreground/60">•</span>
+            <span>Hover to copy as image</span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ import {
 } from "@remixicon/react";
 import { ChatMessage } from "@/components/chat-message";
 import { FormattedMessage } from "@/components/formatted-message";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useChat } from "@/contexts/chat-context";
@@ -137,14 +137,14 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
     }
   }, [messages, hasInitiallyScrolled]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (isSending) return;
 
     const messageContent = inputValue.trim();
     setInputValue("");
     
     // Only check for location queries if writing style is set to "map-searches"
-    if (settings.writingStyle === 'map-searches') {
+    if (settings?.writingStyle === 'map-searches') {
       const locationQuery = extractLocationQuery(messageContent);
       if (locationQuery) {
         // Try to get coordinates for the location
@@ -162,19 +162,24 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
       }
     }
     
-    await sendMessage(messageContent);
-  };
+    if (messageContent) {
+      await sendMessage(messageContent);
+    }
+  }, [isSending, inputValue, settings?.writingStyle, router, sendMessage]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
 
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-  };
+  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (newValue !== inputValue) {
+      setInputValue(newValue);
+    }
+  }, [inputValue]);
 
   const handleUserMessageClick = (messageId: string, content: string) => {
     if (isSending) return; // Don't allow editing while sending
@@ -183,27 +188,9 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
     setEditingContent(content);
   };
 
-  const handleEditSubmit = async () => {
-    if (!editingMessageId || !editingContent.trim() || isSending) return;
-    
-    await editMessage(editingMessageId, editingContent.trim());
-    setEditingMessageId(null);
-    setEditingContent("");
-  };
-
   const handleEditCancel = () => {
-    console.log("Cancel clicked"); // Debug log
     setEditingMessageId(null);
     setEditingContent("");
-  };
-
-  const handleEditKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleEditSubmit();
-    } else if (e.key === "Escape") {
-      handleEditCancel();
-    }
   };
 
   return (
@@ -262,50 +249,18 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
                   messageContent={message.content}
                   messageTimestamp={message.timestamp}
                   onUserMessageClick={handleUserMessageClick}
-                  isSelected={editingMessageId === message.id}
+                  isSelected={false}
                   isHighlighted={highlightedMessageId === message.id}
+                  isEditing={editingMessageId === message.id}
+                  onEdit={async (messageId: string, newContent: string) => {
+                    await editMessage(messageId, newContent);
+                    setEditingMessageId(null);
+                    setEditingContent("");
+                  }}
+                  onCancelEdit={handleEditCancel}
                 >
-                {editingMessageId === message.id ? (
-                  <div className="space-y-3">
-                    <textarea
-                      value={editingContent}
-                      onChange={(e) => setEditingContent(e.target.value)}
-                      onKeyDown={handleEditKeyPress}
-                      className="w-full min-h-[60px] p-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Edit your message..."
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleEditSubmit();
-                        }}
-                        disabled={!editingContent.trim() || isSending}
-                      >
-                        {isSending ? "Updating..." : "Update"}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleEditCancel();
-                        }}
-                        disabled={isSending}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : message.isUser ? (
-                  <p style={{ whiteSpace: 'pre-wrap' }}>{message.content}</p>
-                ) : (
-                  <FormattedMessage content={message.content} />
-                )}
+                  {/* For AI messages, render with FormattedMessage */}
+                  {!message.isUser && <FormattedMessage content={message.content} />}
                 </ChatMessage>
               </div>
             ))}

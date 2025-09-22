@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
 export interface UserSettings {
   writingStyle: 'concise' | 'formal' | 'technical' | 'creative' | 'tabular' | 'mathematical' | 'map-searches' | 'joking';
@@ -53,19 +53,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('harmony-settings', JSON.stringify(settings));
   }, [settings]);
 
-  const updateWritingStyle = (writingStyle: UserSettings['writingStyle']) => {
+  const updateWritingStyle = useMemo(() => (writingStyle: UserSettings['writingStyle']) => {
     setSettings(prev => ({ ...prev, writingStyle }));
-  };
+  }, []);
 
-  const updateLanguage = (language: UserSettings['language']) => {
+  const updateLanguage = useMemo(() => (language: UserSettings['language']) => {
     setSettings(prev => ({ ...prev, language }));
-  };
+  }, []);
 
-  const updateMaxLength = (maxLength: number) => {
+  const updateMaxLength = useMemo(() => (maxLength: number) => {
     setSettings(prev => ({ ...prev, maxLength }));
-  };
+  }, []);
 
-  const getSystemPrompt = () => {
+  const getSystemPrompt = useMemo(() => () => {
     const styleMap = {
       concise: "Brief responses",
       formal: "Professional tone", 
@@ -86,16 +86,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     };
 
     return `Harmony by Ranbir. ${styleMap[settings.writingStyle]} only, nothing else. ${langMap[settings.language]} only no english. Max ${settings.maxLength} chars. Use markdown. Dont explain words in brackets.`;
-  };
+  }, [settings]);
+
+  const contextValue = useMemo(() => ({
+    settings,
+    updateWritingStyle,
+    updateLanguage,
+    updateMaxLength,
+    getSystemPrompt
+  }), [settings, updateWritingStyle, updateLanguage, updateMaxLength, getSystemPrompt]);
 
   return (
-    <SettingsContext.Provider value={{
-      settings,
-      updateWritingStyle,
-      updateLanguage,
-      updateMaxLength,
-      getSystemPrompt
-    }}>
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );

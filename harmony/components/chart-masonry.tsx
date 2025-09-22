@@ -2,6 +2,7 @@
 
 import React from "react";
 import Chart, { ChartConfig } from "./chart";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChartMasonryProps {
   charts: ChartConfig[];
@@ -9,6 +10,8 @@ interface ChartMasonryProps {
 }
 
 const ChartMasonry: React.FC<ChartMasonryProps> = ({ charts, className = "" }) => {
+  const isMobile = useIsMobile();
+  
   if (charts.length === 0) return null;
 
   // For single chart, render normally
@@ -22,18 +25,15 @@ const ChartMasonry: React.FC<ChartMasonryProps> = ({ charts, className = "" }) =
 
   // Helper function to determine charts per row based on total count
   const getChartsPerRow = (totalCharts: number): number => {
-    // Check for mobile screen size
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    
     if (isMobile) {
-      // On mobile, use fewer charts per row
-      if (totalCharts <= 2) return 1;
-      return 2;
+      // On mobile, always use single column layout for better readability
+      return 1;
     }
     
-    // Desktop behavior
+    // Desktop behavior - optimized for up to 4 charts
     if (totalCharts <= 2) return totalCharts;
-    if (totalCharts <= 4) return 2;
+    if (totalCharts === 3) return 3; // Show 3 in a single row
+    if (totalCharts === 4) return 2; // Show 4 in a 2x2 grid (2 per row)
     return 3; // For 5+ charts, use 3 per row
   };
 
@@ -45,10 +45,13 @@ const ChartMasonry: React.FC<ChartMasonryProps> = ({ charts, className = "" }) =
     for (let i = 0; i < chartList.length; i += chartsPerRow) {
       const rowCharts = chartList.slice(i, i + chartsPerRow);
       
+      // Special spacing for 4-chart 2x2 grid
+      const gapClass = chartList.length === 4 ? "gap-3" : "gap-4";
+      
       rows.push(
         <div 
           key={`row-${i}`}
-          className="grid gap-4"
+          className={`grid ${gapClass}`}
           style={{
             gridTemplateColumns: `repeat(${rowCharts.length}, 1fr)`,
           }}
@@ -57,7 +60,7 @@ const ChartMasonry: React.FC<ChartMasonryProps> = ({ charts, className = "" }) =
             const globalIndex = i + index;
             const adjustedChart = {
               ...chart,
-              height: getOptimalHeight(chart, globalIndex, chartList.length)
+              height: getOptimalHeight(chart, globalIndex, chartList.length, isMobile)
             };
             
             return (
@@ -79,7 +82,7 @@ const ChartMasonry: React.FC<ChartMasonryProps> = ({ charts, className = "" }) =
   // For multiple charts, use row-first masonry layout
   return (
     <div className={`w-full ${className}`}>
-      <div className="space-y-4">
+      <div className={charts.length === 4 ? "space-y-3" : "space-y-4"}>
         {renderChartRows(charts)}
       </div>
     </div>
@@ -87,34 +90,34 @@ const ChartMasonry: React.FC<ChartMasonryProps> = ({ charts, className = "" }) =
 };
 
 // Helper function to get optimal height for masonry layout
-const getOptimalHeight = (chart: ChartConfig, index: number, totalCharts: number): number => {
+const getOptimalHeight = (chart: ChartConfig, index: number, totalCharts: number, isMobile: boolean): number => {
   // If height is already specified, use it
   if (chart.height) return chart.height;
   
   // Default heights based on chart type for better visual balance
   const baseHeights = {
-    line: 320,
-    area: 320,
-    bar: 300,
-    pie: 350,
-    scatter: 300
+    line: isMobile ? 250 : 320,
+    area: isMobile ? 250 : 320,
+    bar: isMobile ? 230 : 300,
+    pie: isMobile ? 300 : 380, // Increased height for pie charts to accommodate labels and legend
+    scatter: isMobile ? 230 : 300
   };
   
-  let height = baseHeights[chart.type] || 320;
+  let height = baseHeights[chart.type] || (isMobile ? 250 : 320);
   
-  // For mobile screens, reduce height slightly
-  if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    height = Math.max(height - 40, 280);
+  // Special handling for 4 charts in 2x2 grid - make them more uniform (desktop only)
+  if (totalCharts === 4 && !isMobile) {
+    // Use consistent height for 2x2 grid layout
+    height = chart.type === 'pie' ? 360 : 300;
   }
-  
-  // Slightly vary heights for better masonry effect only if we have multiple charts
-  if (totalCharts > 1) {
+  // Slightly vary heights for better masonry effect only if we have multiple charts (but not 4) and not mobile
+  else if (totalCharts > 1 && totalCharts !== 4 && !isMobile) {
     const variations = [0, 20, -20, 30, -30];
     height += variations[index % variations.length];
   }
   
   // Ensure minimum height
-  return Math.max(height, 280);
+  return Math.max(height, isMobile ? 200 : 280);
 };
 
 export default ChartMasonry;

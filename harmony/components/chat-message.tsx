@@ -14,10 +14,17 @@ import {
   RiCheckLine,
   RiFileCopyLine,
   RiReplyLine,
+  RiSaveLine,
+  RiCloseLine,
+  RiEditLine,
 } from "@remixicon/react";
 import { useBookmarks } from "@/contexts/bookmarks-context";
 import { useChat } from "@/contexts/chat-context";
 import { useState } from "react";
+import React from "react";
+import { FormattedMessage } from "@/components/formatted-message";
+import { Button } from "@/components/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ChatMessageProps = {
   isUser?: boolean;
@@ -29,6 +36,10 @@ type ChatMessageProps = {
   onUserMessageClick?: (messageId: string, content: string) => void;
   isSelected?: boolean;
   isHighlighted?: boolean;
+  // New props for inline editing
+  isEditing?: boolean;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onCancelEdit?: () => void;
 };
 
 export function ChatMessage({ 
@@ -40,26 +51,95 @@ export function ChatMessage({
   messageTimestamp,
   onUserMessageClick,
   isSelected,
-  isHighlighted
+  isHighlighted,
+  isEditing,
+  onEdit,
+  onCancelEdit
 }: ChatMessageProps) {
+  const isMobile = useIsMobile();
+  const [editingContent, setEditingContent] = useState(messageContent || "");
+
+  // Function to detect if message contains a table
+  const hasTable = (content: string): boolean => {
+    if (!content) return false;
+    
+    // Check for markdown table syntax
+    const lines = content.split('\n');
+    let potentialTableRows = 0;
+    let hasSeparator = false;
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      // Check for table separator line (|---|---|)
+      if (trimmed.match(/^\|[\s\-:]+\|/)) {
+        hasSeparator = true;
+        continue;
+      }
+      
+      // Check if line looks like a table row (has multiple | characters)
+      if (trimmed.includes('|')) {
+        const pipeCount = (trimmed.match(/\|/g) || []).length;
+        if (pipeCount >= 2) { // At least 2 pipes suggest a table row
+          potentialTableRows++;
+        }
+      }
+    }
+    
+    // Consider it a table if we have separator + rows, or multiple pipe-heavy lines
+    return hasSeparator || potentialTableRows >= 2;
+  };
+
+  const messageHasTable = isUser ? hasTable(messageContent || "") : false;
+
+  // Update editing content when messageContent changes or when entering edit mode
+  React.useEffect(() => {
+    if (isEditing && messageContent) {
+      setEditingContent(messageContent);
+    }
+  }, [isEditing, messageContent]);
 
   const handleUserMessageClick = () => {
-    if (isUser && messageId && messageContent && onUserMessageClick) {
+    if (isUser && messageId && messageContent && onUserMessageClick && !isEditing) {
       onUserMessageClick(messageId, messageContent);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (onEdit && messageId && editingContent.trim()) {
+      onEdit(messageId, editingContent.trim());
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingContent(messageContent || "");
+    if (onCancelEdit) {
+      onCancelEdit();
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelEdit();
     }
   };
 
   return (
     <article
       className={cn(
-        "flex items-start gap-4 text-[15px] leading-relaxed",
+        "flex items-start text-[15px] leading-relaxed w-full max-w-full",
+        isMobile ? (isUser ? "gap-2" : "gap-1 pr-10") : "gap-4",
         isUser && "justify-end",
         isHighlighted && "bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-lg"
       )}
     >
       <img
         className={cn(
-          "rounded-full",
+          "rounded-full flex-shrink-0",
           isUser ? "order-1" : "border border-black/[0.08] shadow-sm",
         )}
         src={
@@ -73,16 +153,94 @@ export function ChatMessage({
       />
       <div
         className={cn(
-          isUser ? "bg-muted px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/80" : "space-y-4",
-          isSelected && "ring-2 ring-primary bg-primary/10"
+          isUser 
+            ? messageHasTable 
+              ? isMobile 
+                ? "flex-1 min-w-0 bg-muted px-2 py-2 rounded-xl transition-all duration-200"
+                : "flex-1 min-w-0 bg-muted px-4 py-3 rounded-xl transition-all duration-200"
+              : isMobile
+                ? "flex-shrink-0 max-w-[85%] bg-muted px-2 py-2 rounded-xl transition-all duration-200"
+                : "flex-shrink-0 max-w-[70%] bg-muted px-4 py-3 rounded-xl transition-all duration-200"
+            : isMobile
+              ? "flex-1 min-w-0 space-y-2"
+              : "flex-1 min-w-0 space-y-4",
+          "overflow-visible",
+          !isEditing && isUser && "cursor-pointer hover:bg-muted/80",
+          isSelected && "ring-2",
+          isEditing && "ring-2 ring-sidebar/10 cursor-default"
         )}
-        onClick={handleUserMessageClick}
+        onClick={!isEditing ? handleUserMessageClick : undefined}
       >
-        <div className="flex flex-col gap-3">
+        <div className={cn(
+          isMobile ? "flex flex-col gap-2 overflow-visible" : "flex flex-col gap-3 overflow-visible",
+          isEditing ? "w-full min-w-0 max-w-full" 
+            : isUser 
+              ? messageHasTable 
+                ? "w-full min-w-0 max-w-full" 
+                : "w-auto"
+              : "w-full min-w-0 max-w-full"
+        )}>
           <p className="sr-only">{isUser ? "You" : "Bart"} said:</p>
-          {children}
+          
+          {/* Content rendering */}
+          {isEditing ? (
+            <div className="space-y-3 w-full min-w-0 max-w-full">
+              <textarea
+                value={editingContent}
+                onChange={(e) => setEditingContent(e.target.value)}
+                onKeyDown={handleKeyPress}
+                className="!w-full !min-h-[120px] !max-w-full p-3 border border-border rounded-md bg-background text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-primary text-sm leading-relaxed box-border block"
+                placeholder="Edit your message..."
+                autoFocus
+                style={{ 
+                  width: '100% !important', 
+                  minHeight: '150px !important',
+                  maxWidth: '100% !important',
+                  height: 'max-content !important',
+                  resize: 'vertical',
+                  display: 'block'
+                }}
+                rows={5}
+              />
+              <div className="flex gap-2 justify-start">
+                <Button 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSaveEdit();
+                  }}
+                  disabled={!editingContent.trim()}
+                  className="bg-sidebar hover:bg-black text-white flex items-center"
+                >
+                  <RiSaveLine size={14} className="mr-1" />
+                  Save
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCancelEdit();
+                  }}
+                  className="border-black text-black-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center"
+                >
+                  <RiCloseLine size={14} className="mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : isUser ? (
+            // For user messages, use FormattedMessage to support markdown tables
+            <FormattedMessage content={messageContent || ""} />
+          ) : (
+            // For AI messages, render children (which should already be FormattedMessage)
+            children
+          )}
         </div>
-        {!isUser && messageId && messageContent && messageTimestamp && (
+        
+        {!isEditing && !isUser && messageId && messageContent && messageTimestamp && (
           <>
             <MessageActions 
               messageId={messageId}
@@ -90,6 +248,7 @@ export function ChatMessage({
               messageTimestamp={messageTimestamp}
               isUser={isUser}
               userProfileImage={userProfileImage}
+              onEdit={isUser ? () => onUserMessageClick?.(messageId, messageContent) : undefined}
             />
           </>
         )}
@@ -136,6 +295,7 @@ type MessageActionsProps = {
   messageTimestamp: Date;
   isUser?: boolean;
   userProfileImage?: string;
+  onEdit?: () => void;
 };
 
 function MessageActions({ 
@@ -143,7 +303,8 @@ function MessageActions({
   messageContent, 
   messageTimestamp, 
   isUser, 
-  userProfileImage 
+  userProfileImage,
+  onEdit
 }: MessageActionsProps) {
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
   const { regenerateMessage, replyContext, addReplyContext, removeReplyContext } = useChat();
@@ -168,6 +329,7 @@ function MessageActions({
   const handleRefresh = async () => {
     await regenerateMessage(messageId);
   };
+
 
   const handleCopy = async () => {
     try {
@@ -202,11 +364,14 @@ function MessageActions({
           onClick={handleBookmarkToggle}
           isActive={bookmarked}
         />
-        <ActionButton 
-          icon={<RiLoopRightFill size={16} />} 
-          label="Refresh" 
-          onClick={handleRefresh}
-        />
+        {/* Show refresh button for AI messages */}
+        {!isUser && (
+          <ActionButton 
+            icon={<RiLoopRightFill size={16} />} 
+            label="Refresh" 
+            onClick={handleRefresh}
+          />
+        )}
         <ActionButton 
           icon={<RiReplyLine size={16} />} 
           label={isInReplyContext ? "Remove from reply" : isReplyDisabled ? "Maximum 3 replies selected" : "Reply to this"}
