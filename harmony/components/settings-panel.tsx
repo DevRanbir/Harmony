@@ -77,8 +77,9 @@ const SettingsPanelContent = () => {
     '3': 'technical',
     '4': 'creative',
     '5': 'tabular',
-    '6': 'map-searches',
-    '7': 'joking'
+    '6': 'mathematical',
+    '7': 'map-searches',
+    '8': 'joking'
   } as const;
 
   const languageMap = {
@@ -146,8 +147,9 @@ const SettingsPanelContent = () => {
                   <SelectItem value="3" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Technical</SelectItem>
                   <SelectItem value="4" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Creative</SelectItem>
                   <SelectItem value="5" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Tabular</SelectItem>
-                  <SelectItem value="6" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Map Searches</SelectItem>
-                  <SelectItem value="7" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Joking</SelectItem>
+                  <SelectItem value="6" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Mathematical</SelectItem>
+                  <SelectItem value="7" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Map Searches</SelectItem>
+                  <SelectItem value="8" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Joking</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -66,8 +66,9 @@ export function ChatProvider({ children, onHistoryUpdate }: {
   const [currentDate, setCurrentDate] = useState<string>(() => 
     new Date().toISOString().split('T')[0]
   );
+  const [dataSessionMemory, setDataSessionMemory] = useState<string[]>([]); // Store important data snippets
   const { user } = useUser();
-  const { getSystemPrompt } = useSettings();
+  const { getSystemPrompt, settings } = useSettings();
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isInitializedRef = useRef(false);
   const currentSubscriptionDateRef = useRef<string>('');
@@ -197,6 +198,20 @@ export function ChatProvider({ children, onHistoryUpdate }: {
         unsubscribeRef.current = subscribeToChatMessages(user.username!, targetDate, (firebaseMessages) => {
           const convertedMessages = convertFromFirebase(firebaseMessages);
           setMessages(convertedMessages);
+          
+          // Extract data from new messages for session memory (mathematical mode only)
+          if (settings.writingStyle === 'mathematical') {
+            const newDataSnippets: string[] = [];
+            convertedMessages.forEach(msg => {
+              const dataFromMessage = extractDataForSessionMemory(msg.content);
+              newDataSnippets.push(...dataFromMessage);
+            });
+            
+            if (newDataSnippets.length > 0) {
+              updateDataSessionMemory(newDataSnippets);
+            }
+          }
+          
           setIsLoading(false);
         });
         
@@ -225,9 +240,72 @@ export function ChatProvider({ children, onHistoryUpdate }: {
     };
   }, [user?.username, currentDate]);
 
-  // Helper function to get last 2 user messages and 2 AI messages for context
-  const getRecentMessages = (allMessages: ChatMessage[]): { sender: string; text: string }[] => {
-    // Get the last 4 messages (2 user + 2 AI) to keep context minimal
+  // Helper function to detect if a message contains mathematical data
+  const containsMathematicalData = (content: string): boolean => {
+    // Check for JSON code blocks that might contain chart data
+    const jsonCodeBlockRegex = /```(?:json|data|chart)?\s*\n?(\[[\s\S]*?\]|\{[\s\S]*?\})\s*```/gi;
+    return jsonCodeBlockRegex.test(content);
+  };
+
+  // Helper function to extract and store important data for session memory
+  const extractDataForSessionMemory = (content: string): string[] => {
+    const dataSnippets: string[] = [];
+    const jsonCodeBlockRegex = /```(?:json|data|chart)?\s*\n?([\s\S]*?)\s*```/gi;
+    let match;
+    
+    while ((match = jsonCodeBlockRegex.exec(content)) !== null) {
+      const jsonContent = match[1].trim();
+      // Store the JSON data with a reasonable size limit
+      if (jsonContent.length > 0 && jsonContent.length < 2000) {
+        dataSnippets.push(jsonContent);
+      }
+    }
+    
+    return dataSnippets;
+  };
+
+  // Helper function to update data session memory
+  const updateDataSessionMemory = (newData: string[]) => {
+    if (newData.length > 0 && settings.writingStyle === 'mathematical') {
+      setDataSessionMemory(prev => {
+        const updated = [...prev, ...newData];
+        // Keep only the last 10 data snippets to avoid memory bloat
+        return updated.slice(-10);
+      });
+    }
+  };
+
+  // Enhanced helper function to get context messages based on writing style
+  const getRecentMessages = (allMessages: ChatMessage[], writingStyle?: string): { sender: string; text: string }[] => {
+    // For mathematical mode, preserve more context including data-containing messages
+    if (writingStyle === 'mathematical') {
+      // Get last 6 messages + any earlier messages with mathematical data
+      const lastSixMessages = allMessages.slice(-6);
+      const earlierDataMessages = allMessages
+        .slice(0, -6)
+        .filter(msg => containsMathematicalData(msg.content))
+        .slice(-4); // Keep last 4 data messages from earlier conversation
+      
+      const contextMessages = [...earlierDataMessages, ...lastSixMessages];
+      const messageContext = contextMessages.map(msg => ({ 
+        sender: msg.isUser ? 'user' : 'ai', 
+        text: msg.content 
+      }));
+
+      // If we have session memory data and recent messages don't contain enough data context,
+      // prepend a summary of important data
+      if (dataSessionMemory.length > 0 && earlierDataMessages.length === 0) {
+        const dataContext = {
+          sender: 'system' as const,
+          text: `[Previous Data Context]: Here's important data from earlier in our conversation:\n${dataSessionMemory.slice(-3).map((data, i) => `Data ${i + 1}: \`\`\`json\n${data}\n\`\`\``).join('\n\n')}`
+        };
+        return [dataContext, ...messageContext];
+      }
+
+      return messageContext;
+    }
+    
+    // For other modes, keep the original behavior (last 4 messages)
     const recentMessages = allMessages.slice(-4);
     return recentMessages.map(msg => ({ 
       sender: msg.isUser ? 'user' : 'ai', 
@@ -241,6 +319,33 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       return content;
     }
 
+    // For mathematical mode, include more data context
+    if (settings.writingStyle === 'mathematical') {
+      // Find any data-containing messages in reply context
+      const dataReplies = replyContext.filter(ctx => containsMathematicalData(ctx.content));
+      const nonDataReplies = replyContext.filter(ctx => !containsMathematicalData(ctx.content));
+      
+      const replyParts: string[] = [];
+      
+      // Include data messages with more context (first 500 chars instead of 200)
+      if (dataReplies.length > 0) {
+        dataReplies.forEach((ctx, index) => {
+          replyParts.push(`[Data Reference ${index + 1}]: "${ctx.content.slice(0, 500)}${ctx.content.length > 500 ? '...' : ''}"`);
+        });
+      }
+      
+      // Include non-data messages with standard context
+      if (nonDataReplies.length > 0) {
+        nonDataReplies.forEach((ctx, index) => {
+          replyParts.push(`[Reply ${index + 1}]: "${ctx.content.slice(0, 200)}${ctx.content.length > 200 ? '...' : ''}"`);
+        });
+      }
+
+      const replyPart = replyParts.join('\n');
+      return `${replyPart}\n\n[New Question]: ${content}`;
+    }
+
+    // Standard reply context for other modes
     const replyPart = replyContext
       .map((ctx, index) => `[Reply ${index + 1}]: "${ctx.content.slice(0, 200)}${ctx.content.length > 200 ? '...' : ''}"`)
       .join('\n');
@@ -292,8 +397,8 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       // Get AI response from Gemini immediately (no setTimeout delay)
       try {
-        // Get AI response with limited chat history (last 4 messages) and user settings
-        const recentMessages = getRecentMessages(messages);
+        // Get AI response with enhanced chat history for mathematical mode and user settings
+        const recentMessages = getRecentMessages(messages, settings.writingStyle);
         const messageWithContext = formatMessageWithReplyContext(content.trim());
         const aiResponse = await geminiService.sendMessage(
           user.username!,
@@ -442,9 +547,9 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       // Generate new response with the same user input
       try {
-        // Get recent messages up to the point we're regenerating (limited context)
+        // Get recent messages up to the point we're regenerating with enhanced context for mathematical mode
         const messagesUpToRegeneration = messages.slice(0, messageIndex);
-        const recentMessages = getRecentMessages(messagesUpToRegeneration);
+        const recentMessages = getRecentMessages(messagesUpToRegeneration, settings.writingStyle);
         const aiResponse = await geminiService.sendMessage(
           user.username!,
           currentDate,
@@ -526,7 +631,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       // First, generate the new AI response with the edited content
       const messagesUpToEdit = messages.slice(0, messageIndex);
-      const recentMessages = getRecentMessages(messagesUpToEdit);
+      const recentMessages = getRecentMessages(messagesUpToEdit, settings.writingStyle);
       const aiResponse = await geminiService.sendMessage(
         user.username!,
         currentDate,
@@ -579,6 +684,9 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       return;
     }
 
+    // Clear data session memory when switching chats
+    setDataSessionMemory([]);
+
     // Reset scroll state when switching chats
     setCurrentDate(date);
     // Reset subscription tracking when manually switching dates
@@ -589,6 +697,9 @@ export function ChatProvider({ children, onHistoryUpdate }: {
     if (!user?.username) {
       return;
     }
+
+    // Clear data session memory when creating new chat
+    setDataSessionMemory([]);
 
     // Generate a unique date identifier for the new chat session
     const now = new Date();

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface UserSettings {
-  writingStyle: 'concise' | 'formal' | 'technical' | 'creative' | 'tabular' | 'map-searches' | 'joking';
+  writingStyle: 'concise' | 'formal' | 'technical' | 'creative' | 'tabular' | 'mathematical' | 'map-searches' | 'joking';
   language: 'hinglish' | 'english' | 'punjabi' | 'marathi' | 'hindi';
   maxLength: number;
 }
@@ -72,6 +72,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       technical: "Technical detail",
       creative: "Creative language",
       tabular: "use tables only",
+      mathematical: "Mathematical data with graphs. IMPORTANT: Always include numerical data that can be visualized in charts. Provide data in JSON format within code blocks for visualization. Include at least one JSON code block with chart data in every response. Use formats like: ```json\n[{\"x\": 1, \"y\": 2}, {\"x\": 2, \"y\": 4}]\n``` or ```json\n{\"type\": \"line\", \"title\": \"Chart Title\", \"data\": [...], \"xKey\": \"x\", \"yKey\": \"y\"}\n```",
       'map-searches': "Geographic context",
       joking: "Humorous tone"
     };
