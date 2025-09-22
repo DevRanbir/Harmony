@@ -99,7 +99,15 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
   const chartColors = config.colors || defaultColors;
 
   // Custom tooltip component with theme support
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean;
+    payload?: Array<{
+      dataKey: string;
+      value: string | number;
+      color: string;
+    }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div
@@ -110,7 +118,7 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
           }}
         >
           <p className="font-medium text-foreground mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index: number) => (
             <p
               key={index}
               className="text-sm"
@@ -285,7 +293,10 @@ const Chart: React.FC<ChartProps> = ({ config, className = "" }) => {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }: any) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
+              label={(props) => {
+                const labelProps = props as unknown as { name: string; percent: number };
+                return `${labelProps.name} ${(labelProps.percent * 100).toFixed(0)}%`;
+              }}
               outerRadius={pieRadius}
               fill={colors.primary}
               dataKey={config.yKey || "value"}

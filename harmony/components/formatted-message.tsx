@@ -189,15 +189,16 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
         remarkPlugins={[remarkGfm]}
         components={{
           table: ({ children }) => {
-            const tableRef = React.useRef<HTMLDivElement>(null);
-            
-            return (
-              <div className={`my-6 ${isMobile ? 'flex flex-col items-center' : ''}`}>
-                <div className="relative group w-full flex justify-center">
-                  <div 
-                    ref={tableRef}
-                    className={`overflow-x-auto border border-border/30 rounded-lg bg-card/50 backdrop-blur-sm shadow-sm ${
-                      isMobile ? 'max-w-[calc(100vw-1rem)] w-full' : ''
+            const TableComponent = () => {
+              const tableRef = React.useRef<HTMLDivElement>(null);
+              
+              return (
+                <div className={`my-6 ${isMobile ? 'flex flex-col items-center' : ''}`}>
+                  <div className="relative group w-full flex justify-center">
+                    <div 
+                      ref={tableRef}
+                      className={`overflow-x-auto border border-border/30 rounded-lg bg-card/50 backdrop-blur-sm shadow-sm ${
+                        isMobile ? 'max-w-[calc(100vw-1rem)] w-full' : ''
                     }`}
                   >
                     <table className={`w-full border-collapse bg-transparent ${
@@ -237,7 +238,10 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
                   )}
                 </div>
               </div>
-            );
+              );
+            };
+            
+            return <TableComponent />;
           },
           th: ({ children }) => (
             <th className={`border-r border-b border-border/30 bg-muted/30 text-left font-semibold text-foreground last:border-r-0 ${
@@ -271,7 +275,7 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
               processedChildren = children.replace(/__CHART_PLACEHOLDER_\d+__/g, '').trim();
             } else if (React.isValidElement(children)) {
               // If it's a React element, check its content
-              const childContent = String((children.props as any)?.children || '');
+              const childContent = String((children.props as Record<string, unknown>)?.children || '');
               if (/__CHART_PLACEHOLDER_\d+__/.test(childContent)) {
                 return null;
               }
@@ -306,7 +310,7 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
             // Skip rendering pre blocks that were converted to charts
             const codeContent = typeof children === 'string' ? children : 
               React.isValidElement(children) && children.type === 'code' 
-                ? String((children.props as any).children || '') 
+                ? String((children.props as Record<string, unknown>).children || '') 
                 : '';
             
             if (typeof codeContent === 'string' && parseChartData(codeContent)) {
