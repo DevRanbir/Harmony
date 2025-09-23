@@ -15,6 +15,7 @@ interface ChatHistoryContextType {
   refreshHistory: () => Promise<void>;
   updateChatTitle: (date: string, title: string) => Promise<boolean>;
   deleteChatSession: (date: string) => Promise<boolean>;
+  clearAllHistory: () => void;
 }
 
 const ChatHistoryContext = createContext<ChatHistoryContextType | undefined>(undefined);
@@ -81,6 +82,13 @@ export function ChatHistoryProvider({ children }: { children: React.ReactNode })
     }
   }, [user?.username]);
 
+  // Function to clear all chat history from memory
+  const clearAllHistory = () => {
+    setChatHistory([]);
+    setIsLoading(false);
+    console.log('Cleared all chat history from memory');
+  };
+
   return (
     <ChatHistoryContext.Provider value={{
       chatHistory,
@@ -88,6 +96,7 @@ export function ChatHistoryProvider({ children }: { children: React.ReactNode })
       refreshHistory,
       updateChatTitle: updateTitle,
       deleteChatSession,
+      clearAllHistory,
     }}>
       {children}
     </ChatHistoryContext.Provider>

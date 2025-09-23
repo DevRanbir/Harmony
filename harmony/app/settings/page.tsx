@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useUser } from "@clerk/nextjs";
 import { useTheme } from "@/contexts/theme-context";
+import { useChat } from "@/contexts/chat-context";
+import { useBookmarks } from "@/contexts/bookmarks-context";
+import { useChatHistory } from "@/contexts/chat-history-context";
 import { 
   saveUserSettings, 
   getUserSettings, 
@@ -69,9 +72,13 @@ import {
 export default function SettingsPage() {
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
+  const { clearAllChats } = useChat();
+  const { clearAllBookmarks } = useBookmarks();
+  const { clearAllHistory } = useChatHistory();
   const [activeSection, setActiveSection] = useState('general');
   const [settings, setSettings] = useState<UserSettings>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   // Load user settings on component mount
   useEffect(() => {
@@ -136,19 +143,56 @@ export default function SettingsPage() {
   };
 
   const handleDeleteData = async (dataType: 'chats' | 'bookmarks' | 'faqs' | 'all') => {
-    if (!user?.username) return;
+    if (!user?.username) {
+      alert('User not found. Please refresh and try again.');
+      return;
+    }
+    
+    setIsDeleting(dataType);
     
     try {
+      console.log(`Attempting to delete ${dataType} data for user: ${user.username}`);
       const success = await deleteUserData(user.username, dataType);
       
       if (success) {
-        alert(`${dataType} data has been successfully deleted.`);
+        console.log(`Successfully deleted ${dataType} data`);
+        
+        // Clear cached data from contexts
+        if (dataType === 'chats' || dataType === 'all') {
+          clearAllChats();
+          clearAllHistory();
+        }
+        
+        if (dataType === 'bookmarks' || dataType === 'all') {
+          clearAllBookmarks();
+        }
+        
+        // Show success message with better formatting
+        const dataTypeNames = {
+          'chats': 'Chat conversations',
+          'bookmarks': 'Bookmarks',
+          'faqs': 'FAQ submissions',
+          'all': 'All data'
+        };
+        
+        alert(`✓ ${dataTypeNames[dataType]} ${dataType === 'all' ? 'has' : 'have'} been successfully deleted.`);
+        
+        // If deleting all data, offer to refresh the page
+        if (dataType === 'all') {
+          const refresh = confirm('Would you like to refresh the page to reset your session?');
+          if (refresh) {
+            window.location.reload();
+          }
+        }
       } else {
-        alert(`Failed to delete ${dataType} data. Please try again.`);
+        console.error(`Failed to delete ${dataType} data`);
+        alert(`❌ Failed to delete ${dataType} data. Please check your connection and try again.`);
       }
     } catch (error) {
       console.error(`Error deleting ${dataType} data:`, error);
-      alert(`Failed to delete ${dataType} data. Please try again.`);
+      alert(`❌ An error occurred while deleting ${dataType} data: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -387,9 +431,9 @@ export default function SettingsPage() {
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" disabled={isDeleting === 'chats'}>
                   <RiDeleteBinLine className="w-4 h-4 mr-2" />
-                  Delete Chats
+                  {isDeleting === 'chats' ? 'Deleting...' : 'Delete Chats'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -405,8 +449,9 @@ export default function SettingsPage() {
                 <AlertDialogAction 
                     onClick={() => handleDeleteData('chats')}
                     className="bg-destructive hover:bg-destructive/90"
+                    disabled={isDeleting === 'chats'}
                   >
-                    Delete All Chats
+                    {isDeleting === 'chats' ? 'Deleting...' : 'Delete All Chats'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -427,9 +472,9 @@ export default function SettingsPage() {
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" disabled={isDeleting === 'bookmarks'}>
                   <RiDeleteBinLine className="w-4 h-4 mr-2" />
-                  Delete Bookmarks
+                  {isDeleting === 'bookmarks' ? 'Deleting...' : 'Delete Bookmarks'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -445,8 +490,9 @@ export default function SettingsPage() {
                   <AlertDialogAction 
                     onClick={() => handleDeleteData('bookmarks')}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={isDeleting === 'bookmarks'}
                   >
-                    Delete All Bookmarks
+                    {isDeleting === 'bookmarks' ? 'Deleting...' : 'Delete All Bookmarks'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -467,9 +513,9 @@ export default function SettingsPage() {
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" disabled={isDeleting === 'faqs'}>
                   <RiDeleteBinLine className="w-4 h-4 mr-2" />
-                  Delete FAQs
+                  {isDeleting === 'faqs' ? 'Deleting...' : 'Delete FAQs'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -485,8 +531,9 @@ export default function SettingsPage() {
                   <AlertDialogAction 
                     onClick={() => handleDeleteData('faqs')}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={isDeleting === 'faqs'}
                   >
-                    Delete FAQ History
+                    {isDeleting === 'faqs' ? 'Deleting...' : 'Delete FAQ History'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -507,9 +554,9 @@ export default function SettingsPage() {
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" disabled={isDeleting === 'all'}>
                   <RiDeleteBinLine className="w-4 h-4 mr-2" />
-                  Delete Everything
+                  {isDeleting === 'all' ? 'Deleting...' : 'Delete Everything'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -525,8 +572,9 @@ export default function SettingsPage() {
                   <AlertDialogAction 
                     onClick={() => handleDeleteData('all')}
                     className="bg-destructive hover:bg-destructive/90"
+                    disabled={isDeleting === 'all'}
                   >
-                    Delete All Data
+                    {isDeleting === 'all' ? 'Deleting...' : 'Delete All Data'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

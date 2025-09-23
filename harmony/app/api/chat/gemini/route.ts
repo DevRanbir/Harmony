@@ -27,8 +27,19 @@ export async function POST(request: NextRequest) {
     // Get or create chat session
     let chat = chatSessions.get(sessionKey);
     if (!chat) {
-      // Use custom system prompt if provided, otherwise use default
-      const defaultSystemPrompt = 'You are Harmony, an AI assistant developed by Ranbir as part of Project Harmony. You are friendly, helpful, and knowledgeable. Please introduce yourself as Harmony and mention that you were created by Ranbir. Keep your responses concise but informative. Always maintain a warm and professional tone. When presenting data in tables, use proper markdown table format with | symbols. For code, use markdown code blocks. Use markdown formatting for better readability including headers, lists, bold, italic, etc.';
+      // Use custom system prompt if provided, otherwise use minimal default
+      const defaultSystemPrompt = `You are Harmony by Ranbir. Be extremely concise. Answer directly with essential info only. Max 2-3 sentences. No verbose explanations. Use minimal tables if needed. 
+
+IMPORTANT CHART CAPABILITIES: You CAN create visual charts! When users ask for charts/graphs, provide JSON data in code blocks using the EXACT chart type they request.
+
+Chart Examples:
+- Line chart: {"type": "line", "data": [{"x": "A", "y": 10}, {"x": "B", "y": 20}], "xKey": "x", "yKey": "y"}
+- Bar chart: {"type": "bar", "data": [{"category": "A", "value": 10}], "xKey": "category", "yKey": "value"}
+- Pie chart: {"type": "pie", "data": [{"name": "A", "value": 30}], "xKey": "name", "yKey": "value"}
+- Scatter chart: {"type": "scatter", "data": [{"x": 1, "y": 2}], "xKey": "x", "yKey": "y"}
+- Area chart: {"type": "area", "data": [{"x": "A", "y": 10}], "xKey": "x", "yKey": "y"}
+
+Never say you cannot draw or create charts. Always use the requested chart type.`;
       
       const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
       
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest) {
         },
         {
           role: 'model',
-          parts: [{ text: 'Hello! I\'m Harmony, your AI assistant created by Ranbir as part of Project Harmony. I\'m here to help you with questions, have conversations, and assist with various topics. I aim to be helpful, friendly, and provide you with accurate information using proper formatting when needed. What can I help you with today?' }],
+          parts: [{ text: 'Hi! I\'m Harmony by Ranbir. I can create charts and graphs for you! Just ask for line, bar, pie, scatter, or area charts. How can I help?' }],
         },
       ];
 
@@ -62,7 +73,7 @@ export async function POST(request: NextRequest) {
       chat = model.startChat({
         history,
         generationConfig: {
-          maxOutputTokens: 600, // Further reduced for faster responses
+          maxOutputTokens: systemPrompt && (systemPrompt.includes('ALGORITHM MODE') || systemPrompt.includes('AUTO MODE')) ? 800 : 300, // More tokens for algorithm and auto modes
           temperature: 0.7,
           topP: 0.95,
           topK: 40,
@@ -83,15 +94,15 @@ export async function POST(request: NextRequest) {
     console.error('Error in Gemini API route:', error);
     
     // Provide appropriate error responses
-    let errorMessage = 'I apologize, but I\'m having trouble processing your request right now. Please try again later.';
+    let errorMessage = 'Error. Try again.';
     
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
-        errorMessage = 'I apologize, but there seems to be an issue with my configuration. Please check that the API key is properly set up.';
+        errorMessage = 'API key issue.';
       } else if (error.message.includes('quota') || error.message.includes('limit')) {
-        errorMessage = 'I\'m currently experiencing high demand. Please try again in a moment.';
+        errorMessage = 'High demand. Try later.';
       } else if (error.message.includes('safety')) {
-        errorMessage = 'I understand your question, but I\'m not able to provide a response to that particular topic. Is there something else I can help you with?';
+        errorMessage = 'Can\'t answer that. Try something else.';
       }
     }
     

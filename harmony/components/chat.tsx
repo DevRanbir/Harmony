@@ -92,7 +92,7 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuthContext();
   const { messages, sendMessage, editMessage, isLoading, isSending, isThinking, currentDate, replyContext, clearReplyContext, removeReplyContext } = useChat();
-  const { settings } = useSettings();
+  const { settings, temporarySwitchMode, revertToAuto } = useSettings();
   const [hasInitiallyScrolled, setHasInitiallyScrolled] = useState(false);
   const [lastChatDate, setLastChatDate] = useState(currentDate);
   const [inputValue, setInputValue] = useState("");
@@ -137,11 +137,29 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
     }
   }, [messages, hasInitiallyScrolled]);
 
+  // Revert to auto mode after AI responds
+  useEffect(() => {
+    if (!isSending && !isThinking && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage.isUser) {
+        // AI just responded, revert to auto if we were temporarily switched
+        setTimeout(() => {
+          revertToAuto();
+        }, 100); // Small delay to ensure UI updates properly
+      }
+    }
+  }, [isSending, isThinking, messages, revertToAuto]);
+
   const handleSendMessage = useCallback(async () => {
     if (isSending) return;
 
     const messageContent = inputValue.trim();
     setInputValue("");
+    
+    // If auto mode is selected, temporarily switch to detected mode
+    if (settings?.writingStyle === 'auto') {
+      temporarySwitchMode('auto', messageContent);
+    }
     
     // Only check for location queries if writing style is set to "map-searches"
     if (settings?.writingStyle === 'map-searches') {
@@ -165,7 +183,7 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
     if (messageContent) {
       await sendMessage(messageContent);
     }
-  }, [isSending, inputValue, settings?.writingStyle, router, sendMessage]);
+  }, [isSending, inputValue, settings?.writingStyle, router, sendMessage, temporarySwitchMode]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -269,8 +287,8 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
               <div className="transition-opacity duration-300 ease-out">
                 <ChatMessage isUser={false}>
                   <div className="flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-muted-foreground/30 border-t-foreground"></div>
-                    <p>Loading chat history...</p>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-muted-foreground/30 border-t-foreground"></div>
+                    <p>Loading...</p>
                   </div>
                 </ChatMessage>
               </div>
@@ -279,7 +297,7 @@ async function fetchLatLng(location: string): Promise<{lat: number, lng: number,
             {isThinking && (
               <div className="transition-opacity duration-300 ease-out">
                 <ChatMessage isUser={false}>
-                    <p>Thinking...</p>
+                    <p>...</p>
                 </ChatMessage>
               </div>
             )}

@@ -41,6 +41,7 @@ interface ChatContextType {
   editMessage: (messageId: string, newContent: string) => Promise<void>;
   loadMessagesForDate: (date: string) => Promise<void>;
   createNewChat: () => Promise<void>;
+  clearAllChats: () => void;
   currentDate: string;
   isLoading: boolean;
   isSending: boolean;
@@ -68,7 +69,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
   );
   const [dataSessionMemory, setDataSessionMemory] = useState<string[]>([]); // Store important data snippets
   const { user } = useUser();
-  const { getSystemPrompt, settings } = useSettings();
+  const { getSystemPrompt, getSystemPromptForMessage, settings } = useSettings();
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isInitializedRef = useRef(false);
   const currentSubscriptionDateRef = useRef<string>('');
@@ -126,6 +127,17 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
   const clearReplyContext = () => {
     setReplyContext([]);
+  };
+
+  // Function to clear all chat data from memory
+  const clearAllChats = () => {
+    setMessages([]);
+    setReplyContext([]);
+    setCurrentDate(new Date().toISOString().split('T')[0]);
+    setIsLoading(false);
+    setIsSending(false);
+    setIsThinking(false);
+    console.log('Cleared all chat data from memory');
   };
 
   // Single effect to handle both initial load and date changes
@@ -200,7 +212,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
           setMessages(convertedMessages);
           
           // Extract data from new messages for session memory (mathematical mode only)
-          if (settings.writingStyle === 'mathematical') {
+          if (settings.writingStyle === 'algorithm') {
             const newDataSnippets: string[] = [];
             convertedMessages.forEach(msg => {
               const dataFromMessage = extractDataForSessionMemory(msg.content);
@@ -266,7 +278,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
   // Helper function to update data session memory
   const updateDataSessionMemory = (newData: string[]) => {
-    if (newData.length > 0 && settings.writingStyle === 'mathematical') {
+    if (newData.length > 0 && settings.writingStyle === 'algorithm') {
       setDataSessionMemory(prev => {
         const updated = [...prev, ...newData];
         // Keep only the last 10 data snippets to avoid memory bloat
@@ -275,10 +287,27 @@ export function ChatProvider({ children, onHistoryUpdate }: {
     }
   };
 
-  // Enhanced helper function to get context messages based on writing style
-  const getRecentMessages = (allMessages: ChatMessage[], writingStyle?: string): { sender: string; text: string }[] => {
+  // Enhanced helper function to get context messages based on writing style and reply context
+  const getRecentMessages = (allMessages: ChatMessage[], writingStyle?: string, includeReplyContext?: boolean): { sender: string; text: string }[] => {
+    // If we have reply context and auto mode is NOT selected, only send the reply context messages
+    if (includeReplyContext && replyContext.length > 0 && writingStyle !== 'auto') {
+      return replyContext.map(ctx => ({ 
+        sender: 'user', // Reply context is always from user messages 
+        text: ctx.content 
+      }));
+    }
+
+    // For auto mode, don't include older messages when reply context exists
+    if (writingStyle === 'auto' && replyContext.length > 0) {
+      // Only send the reply context for auto mode, not the older messages
+      return replyContext.map(ctx => ({ 
+        sender: 'user', 
+        text: ctx.content 
+      }));
+    }
+
     // For mathematical mode, preserve more context including data-containing messages
-    if (writingStyle === 'mathematical') {
+    if (writingStyle === 'algorithm') {
       // Get last 6 messages + any earlier messages with mathematical data
       const lastSixMessages = allMessages.slice(-6);
       const earlierDataMessages = allMessages
@@ -315,12 +344,14 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
   // Helper function to format user message with reply context
   const formatMessageWithReplyContext = (content: string): string => {
-    if (replyContext.length === 0) {
+    // For auto mode and other modes where reply context is handled in getRecentMessages,
+    // don't duplicate the context in the message formatting
+    if (replyContext.length === 0 || settings.writingStyle === 'auto') {
       return content;
     }
 
     // For mathematical mode, include more data context
-    if (settings.writingStyle === 'mathematical') {
+    if (settings.writingStyle === 'algorithm') {
       // Find any data-containing messages in reply context
       const dataReplies = replyContext.filter(ctx => containsMathematicalData(ctx.content));
       const nonDataReplies = replyContext.filter(ctx => !containsMathematicalData(ctx.content));
@@ -345,7 +376,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       return `${replyPart}\n\n[New Question]: ${content}`;
     }
 
-    // Standard reply context for other modes
+    // Standard reply context for other modes (not auto)
     const replyPart = replyContext
       .map((ctx, index) => `[Reply ${index + 1}]: "${ctx.content.slice(0, 200)}${ctx.content.length > 200 ? '...' : ''}"`)
       .join('\n');
@@ -398,14 +429,15 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       // Get AI response from Gemini immediately (no setTimeout delay)
       try {
         // Get AI response with enhanced chat history for mathematical mode and user settings
-        const recentMessages = getRecentMessages(messages, settings.writingStyle);
+        const recentMessages = getRecentMessages(messages, settings.writingStyle, true);
         const messageWithContext = formatMessageWithReplyContext(content.trim());
+        const systemPrompt = await getSystemPromptForMessage(content.trim()); // Get the system prompt based on user settings and message content
         const aiResponse = await geminiService.sendMessage(
           user.username!,
           currentDate,
           messageWithContext,
           recentMessages, // Only send last 4 messages instead of entire chat history
-          getSystemPrompt() // Pass the system prompt based on user settings
+          systemPrompt
         );
 
         const aiMessage = convertToFirebase({
@@ -549,13 +581,14 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       try {
         // Get recent messages up to the point we're regenerating with enhanced context for mathematical mode
         const messagesUpToRegeneration = messages.slice(0, messageIndex);
-        const recentMessages = getRecentMessages(messagesUpToRegeneration, settings.writingStyle);
+        const recentMessages = getRecentMessages(messagesUpToRegeneration, settings.writingStyle, false);
+        const systemPrompt = await getSystemPromptForMessage(userMessage.content); // Get the system prompt based on user settings and message content
         const aiResponse = await geminiService.sendMessage(
           user.username!,
           currentDate,
           userMessage.content,
           recentMessages, // Only send recent messages instead of entire history
-          getSystemPrompt() // Pass the system prompt based on user settings
+          systemPrompt
         );
 
         const aiMessage = convertToFirebase({
@@ -631,12 +664,14 @@ export function ChatProvider({ children, onHistoryUpdate }: {
 
       // First, generate the new AI response with the edited content
       const messagesUpToEdit = messages.slice(0, messageIndex);
-      const recentMessages = getRecentMessages(messagesUpToEdit, settings.writingStyle);
+      const recentMessages = getRecentMessages(messagesUpToEdit, settings.writingStyle, false);
+      const systemPrompt = await getSystemPromptForMessage(newContent.trim()); // Get the system prompt based on user settings and message content
       const aiResponse = await geminiService.sendMessage(
         user.username!,
         currentDate,
         newContent.trim(),
-        recentMessages // Only send recent messages instead of entire history
+        recentMessages, // Only send recent messages instead of entire history
+        systemPrompt
       );
 
       // Only after we have the new response, delete messages and update
@@ -737,6 +772,7 @@ export function ChatProvider({ children, onHistoryUpdate }: {
       editMessage,
       loadMessagesForDate,
       createNewChat,
+      clearAllChats,
       currentDate,
       isLoading,
       isSending,

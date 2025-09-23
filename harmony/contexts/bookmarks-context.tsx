@@ -24,6 +24,7 @@ interface BookmarksContextType {
   addBookmark: (message: Omit<BookmarkedMessage, 'bookmarkedAt'>) => Promise<void>;
   removeBookmark: (id: string) => Promise<void>;
   isBookmarked: (id: string) => boolean;
+  clearAllBookmarks: () => void;
   isLoading: boolean;
 }
 
@@ -148,12 +149,20 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
     return bookmarks.some(bookmark => bookmark.id === id);
   };
 
+  // Function to clear all bookmarks from memory
+  const clearAllBookmarks = () => {
+    setBookmarks([]);
+    setIsLoading(false);
+    console.log('Cleared all bookmarks from memory');
+  };
+
   return (
     <BookmarksContext.Provider value={{
       bookmarks,
       addBookmark,
       removeBookmark,
       isBookmarked,
+      clearAllBookmarks,
       isLoading,
     }}>
       {children}

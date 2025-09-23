@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/button";
 import { Input } from "@/components/input";
 import { Separator } from "@/components/separator";
-import { Sheet, SheetTitle, SheetContent } from "@/components/sheet";
+import { Sheet, SheetTitle, SheetContent, SheetDescription } from "@/components/sheet";
 import { Skeleton } from "@/components/skeleton";
 import { ScrollArea } from "@/components/scroll-area";
 import {
@@ -247,6 +247,7 @@ function Sidebar({
           side={side}
         >
           <SheetTitle className="hidden">Menu</SheetTitle>
+          <SheetDescription className="hidden">Navigation menu and application options</SheetDescription>
           <div className="flex h-full w-full flex-col relative">
             {children}
             {/* Mobile close button */}

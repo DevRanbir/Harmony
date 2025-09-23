@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/select";
 import SliderControl from "@/components/slider-control";
-import { Sheet, SheetTitle, SheetContent } from "@/components/sheet";
+import { Sheet, SheetTitle, SheetContent, SheetDescription } from "@/components/sheet";
 import * as React from "react";
 import { ScrollArea } from "@/components/scroll-area";
 import { ChatHistorySection } from "@/components/chat-history-section";
@@ -77,9 +77,11 @@ const SettingsPanelContent = () => {
     '3': 'technical',
     '4': 'creative',
     '5': 'tabular',
-    '6': 'mathematical',
-    '7': 'map-searches',
-    '8': 'joking'
+    '6': 'graphs',
+    '7': 'algorithm',
+    '8': 'map-searches',
+    '9': 'joking',
+    '10': 'auto'
   } as const;
 
   const languageMap = {
@@ -147,9 +149,11 @@ const SettingsPanelContent = () => {
                   <SelectItem value="3" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Technical</SelectItem>
                   <SelectItem value="4" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Creative</SelectItem>
                   <SelectItem value="5" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Tabular</SelectItem>
-                  <SelectItem value="6" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Mathematical</SelectItem>
-                  <SelectItem value="7" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Map Searches</SelectItem>
-                  <SelectItem value="8" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Joking</SelectItem>
+                  <SelectItem value="6" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Graphs</SelectItem>
+                  <SelectItem value="7" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Algorithm</SelectItem>
+                  <SelectItem value="8" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Map Searches</SelectItem>
+                  <SelectItem value="9" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Joking</SelectItem>
+                  <SelectItem value="10" className="hover:bg-accent/50 focus:bg-accent/50 transition-colors duration-150">Auto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -281,6 +285,7 @@ const SettingsPanel = () => {
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent className="w-72 px-4 md:px-6 py-0 bg-background/95 backdrop-blur-md border-border/60 shadow-xl [&>button]:hidden">
           <SheetTitle className="hidden">Settings</SheetTitle>
+          <SheetDescription className="hidden">Configure your application settings and preferences</SheetDescription>
           <div className="flex h-full w-full flex-col">
             <SettingsPanelContent />
           </div>

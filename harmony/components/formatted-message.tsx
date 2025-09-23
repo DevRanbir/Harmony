@@ -16,14 +16,28 @@ function parseChartData(codeContent: string): ChartConfig | null {
     // Remove any language identifier and trim whitespace
     const cleanedContent = codeContent.replace(/^(json|chart|graph|data)\s*\n?/i, '').trim();
     
+    // Basic validation: must contain JSON structure indicators
+    if (!cleanedContent.includes('{') && !cleanedContent.includes('[')) {
+      return null;
+    }
+    
+    // Must be at least 10 characters to be meaningful JSON
+    if (cleanedContent.length < 10) {
+      return null;
+    }
+    
     // Try to parse as JSON
     const parsed = JSON.parse(cleanedContent);
     
     // Check if it looks like chart configuration
     if (parsed && typeof parsed === 'object') {
-      // Direct chart config format
+      // Direct chart config format - respect the requested type (PRIORITY #1)
       if (parsed.type && parsed.data && parsed.xKey) {
-        return parsed as ChartConfig;
+        // Validate that the chart type is supported
+        const supportedTypes = ['line', 'area', 'bar', 'pie', 'scatter'];
+        if (supportedTypes.includes(parsed.type)) {
+          return parsed as ChartConfig;
+        }
       }
       
       // Auto-detect simple data arrays and create chart config
@@ -32,7 +46,7 @@ function parseChartData(codeContent: string): ChartConfig | null {
         if (typeof firstItem === 'object' && firstItem !== null) {
           const keys = Object.keys(firstItem);
           if (keys.length >= 2) {
-            // Auto-determine chart type based on data structure
+            // Auto-determine chart type based on data characteristics
             const stringKeys = keys.filter(key => typeof firstItem[key] === 'string');
             const numericKeys = keys.filter(key => typeof firstItem[key] === 'number');
             
@@ -40,7 +54,7 @@ function parseChartData(codeContent: string): ChartConfig | null {
               const xKey = stringKeys[0] || keys[0];
               const yKey = numericKeys[0];
               
-              // Determine optimal chart type based on data characteristics
+              // Default to bar chart for auto-detection (was overriding user requests)
               let chartType: ChartConfig['type'] = 'bar';
               
               // If we have one string field and one numeric field, good for pie chart
@@ -125,8 +139,7 @@ function parseChartData(codeContent: string): ChartConfig | null {
       }
     }
   } catch (error) {
-    // Not valid JSON or chart data
-    console.log('Not chart data:', error);
+    // Silently ignore parsing errors for non-chart content
   }
   
   return null;
@@ -222,20 +235,14 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
                   )}
                 </div>
                 
-                {/* Table description */}
-                <div className={`mt-2 text-muted-foreground flex items-center gap-2 ${isMobile ? 'text-xs justify-center' : 'text-xs'}`}>
+                {/* Minimal table description */}
+                <div className={`mt-1 text-muted-foreground/70 flex items-center gap-1 ${isMobile ? 'text-xs justify-center' : 'text-xs'}`}>
                   <span className="inline-flex items-center gap-1">
-                    <svg className="w-6 h-6 text-gray-400 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-400 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                       <path stroke="currentColor" strokeWidth="2" d="M3 11h18m-9 0v8m-8 0h16a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Z"/>
                     </svg>
                     Table
                   </span>
-                  {!isMobile && (
-                    <>
-                      <span className="text-muted-foreground/60">•</span>
-                      <span>Hover to copy as image</span>
-                    </>
-                  )}
                 </div>
               </div>
               );
@@ -316,10 +323,76 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
             if (typeof codeContent === 'string' && parseChartData(codeContent)) {
               return null; // Skip chart code blocks as they're rendered above
             }
+
+            // Extract language from className if it exists
+            let language = 'code';
+            let title = 'Code Snippet';
+            
+            if (React.isValidElement(children) && children.props) {
+              const className = (children.props as any).className || '';
+              const langMatch = className.match(/language-(\w+)/);
+              if (langMatch) {
+                language = langMatch[1];
+                // Set appropriate titles based on language
+                switch (language.toLowerCase()) {
+                  case 'python':
+                    title = 'Python Implementation';
+                    break;
+                  case 'javascript':
+                  case 'js':
+                    title = 'JavaScript Implementation';
+                    break;
+                  case 'java':
+                    title = 'Java Implementation';
+                    break;
+                  case 'cpp':
+                  case 'c++':
+                    title = 'C++ Implementation';
+                    break;
+                  case 'c':
+                    title = 'C Implementation';
+                    break;
+                  default:
+                    title = `${language.charAt(0).toUpperCase() + language.slice(1)} Code`;
+                }
+              }
+            }
+
+            const copyToClipboard = () => {
+              const textContent = typeof codeContent === 'string' ? codeContent : '';
+              navigator.clipboard.writeText(textContent).catch(console.error);
+            };
             
             return (
-              <div className="bg-black/5 dark:bg-white/5 border border-white/20 dark:border-white/20 rounded-md p-3 my-2 overflow-x-auto">
-                {children}
+              <div className="bg-black/5 dark:bg-white/5 border border-white/20 dark:border-white/20 rounded-md my-2 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-2 bg-black/10 dark:bg-white/10 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-semibold text-muted-foreground uppercase tracking-wide">
+                      {language}
+                    </span>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <span className="text-xs font-medium text-foreground">
+                      {title}
+                    </span>
+                  </div>
+                  <button
+                    onClick={copyToClipboard}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground bg-transparent hover:bg-white/10 dark:hover:bg-black/20 rounded transition-colors duration-200"
+                    title="Copy to clipboard"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </button>
+                </div>
+                {/* Code content */}
+                <div className="p-3 overflow-x-auto">
+                  <pre className="font-mono text-sm whitespace-pre-wrap" style={{ whiteSpace: 'pre' }}>
+                    {children}
+                  </pre>
+                </div>
               </div>
             );
           },
@@ -340,7 +413,7 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
             }
             
             return (
-              <code className={`block ${className || ''}`} {...props}>
+              <code className={`block font-mono text-sm whitespace-pre-wrap ${className || ''}`} style={{ whiteSpace: 'pre' }} {...props}>
                 {children}
               </code>
             );

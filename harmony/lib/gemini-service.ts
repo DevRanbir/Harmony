@@ -41,7 +41,7 @@ export class GeminiService {
       }
 
       const data = await response.json();
-      return data.response || 'I apologize, but I\'m having trouble processing your request right now.';
+      return data.response || 'Error. Try again.';
       
     } catch (error) {
       console.error('Error sending message to Gemini:', error);
@@ -49,17 +49,17 @@ export class GeminiService {
       // Provide fallback responses based on error type
       if (error instanceof Error) {
         if (error.message.includes('401')) {
-          return 'I apologize, but you need to be signed in to chat with me.';
+          return 'Please sign in.';
         }
         if (error.message.includes('500')) {
-          return 'I apologize, but there seems to be a server configuration issue. Please try again later.';
+          return 'Server issue. Try later.';
         }
         if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
-          return 'I\'m having trouble connecting right now. Please check your internet connection and try again.';
+          return 'Connection issue. Check internet.';
         }
       }
       
-      return 'I apologize, but I\'m having trouble processing your request right now. Please try again later.';
+      return 'Error. Try again.';
     }
   }
 
