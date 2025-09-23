@@ -51,6 +51,9 @@ import {
   RiAddLine,
   RiSubtractLine,
   RiEyeOffLine,
+  RiEditLine,
+  RiLockLine,
+  RiLoginBoxLine,
 } from "@remixicon/react";
 import { 
   submitPublicQuestion,
@@ -115,7 +118,7 @@ const faqData = [
   }
 ];
 
-type TabType = 'faq' | 'public' | 'user';
+type TabType = 'faq' | 'public' | 'user' | 'ask';
 
 interface UserType {
   id?: string;
@@ -145,6 +148,7 @@ export default function HelpPage() {
   const [activeTab, setActiveTab] = useState<TabType>('faq');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [hoveredItems, setHoveredItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'votes' | 'alphabetical'>('newest');
   
@@ -163,8 +167,6 @@ export default function HelpPage() {
     isAnonymous: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPublicForm, setShowPublicForm] = useState(false);
-  const [showPrivateForm, setShowPrivateForm] = useState(false);
 
   // Load questions from Firebase
   React.useEffect(() => {
@@ -263,7 +265,7 @@ export default function HelpPage() {
         });
       }
       
-      // Reset form and close dropdowns
+      // Reset form
       setQuestionForm({
         question: '',
         description: '',
@@ -271,8 +273,6 @@ export default function HelpPage() {
         isPublic: true,
         isAnonymous: false
       });
-      setShowPublicForm(false);
-      setShowPrivateForm(false);
     } catch (error) {
       console.error('Error submitting question:', error);
       // You could add a toast notification here
@@ -320,6 +320,20 @@ export default function HelpPage() {
       newExpanded.add(id);
     }
     setExpandedItems(newExpanded);
+  };
+
+  const handleItemHover = (id: string, isHovering: boolean) => {
+    const newHovered = new Set(hoveredItems);
+    if (isHovering) {
+      newHovered.add(id);
+    } else {
+      newHovered.delete(id);
+    }
+    setHoveredItems(newHovered);
+  };
+
+  const isItemExpanded = (id: string) => {
+    return expandedItems.has(id) || hoveredItems.has(id);
   };
 
   const filterAndSortItems = <T extends { id: string | number; question: string; category: string; timestamp?: number; votes?: number; answer?: string; description?: string }>(
@@ -472,53 +486,70 @@ export default function HelpPage() {
                             }`}
                           >
                             <RiUserLine className="h-4 w-4" />
-                            User Q&A
+                            Your Q&A
                           </button>
                         )}
+                        <button
+                          onClick={() => {
+                            setActiveTab('ask');
+                            setSearchQuery('');
+                            setSelectedCategory('all');
+                          }}
+                          className={`flex items-center gap-2 px-6 py-4 font-medium text-sm transition-all duration-300 ease-in-out border-b-2 transform hover:scale-[1.02] ${
+                            activeTab === 'ask'
+                              ? 'border-primary text-primary bg-primary/5 scale-[1.02]'
+                              : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          <RiEditLine className="h-4 w-4" />
+                          Ask Question
+                        </button>
                       </div>
                     </div>
 
                     {/* Search and Filter */}
-                    <div className="p-6 border-b border-border/30">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="relative flex-1">
-                          <RiSearchLine className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70" size={16} />
-                          <Input
-                            placeholder="Search questions..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                            <SelectTrigger className="w-full sm:w-48">
-                              <SelectValue placeholder="Category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(activeTab === 'faq' ? getFAQCategories() :
-                                activeTab === 'public' ? getPublicCategories() :
-                                getUserCategories()).map(category => (
-                                <SelectItem key={category} value={category}>
-                                  {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'votes' | 'alphabetical') => setSortBy(value)}>
-                            <SelectTrigger className="w-full sm:w-40">
-                              <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="newest">Newest</SelectItem>
-                              <SelectItem value="oldest">Oldest</SelectItem>
-                              <SelectItem value="votes">Most Votes</SelectItem>
-                              <SelectItem value="alphabetical">A-Z</SelectItem>
-                            </SelectContent>
-                          </Select>
+                    {activeTab !== 'ask' && (
+                      <div className="p-6 border-b border-border/30">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="relative flex-1">
+                            <RiSearchLine className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/70" size={16} />
+                            <Input
+                              placeholder="Search questions..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                              <SelectTrigger className="w-full sm:w-48">
+                                <SelectValue placeholder="Category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(activeTab === 'faq' ? getFAQCategories() :
+                                  activeTab === 'public' ? getPublicCategories() :
+                                  getUserCategories()).map(category => (
+                                  <SelectItem key={category} value={category}>
+                                    {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={sortBy} onValueChange={(value: 'newest' | 'oldest' | 'votes' | 'alphabetical') => setSortBy(value)}>
+                              <SelectTrigger className="w-full sm:w-40">
+                                <SelectValue placeholder="Sort by" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="newest">Newest</SelectItem>
+                                <SelectItem value="oldest">Oldest</SelectItem>
+                                <SelectItem value="votes">Most Votes</SelectItem>
+                                <SelectItem value="alphabetical">A-Z</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Content Based on Active Tab */}
                     <div className="p-6">
@@ -529,7 +560,12 @@ export default function HelpPage() {
                             <h2 className="text-lg font-semibold">Frequently Asked Questions</h2>
                           </div>
                           {filterAndSortItems(faqData, searchQuery, selectedCategory, sortBy).map((faq) => (
-                            <div key={faq.id} className="border border-border/30 rounded-lg overflow-hidden transition-all duration-200 hover:shadow-md">
+                            <div 
+                              key={faq.id} 
+                              className="border border-border/30 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border/50"
+                              onMouseEnter={() => handleItemHover(`faq-${faq.id}`, true)}
+                              onMouseLeave={() => handleItemHover(`faq-${faq.id}`, false)}
+                            >
                               <button
                                 onClick={() => toggleExpanded(`faq-${faq.id}`)}
                                 className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-all duration-200"
@@ -538,10 +574,16 @@ export default function HelpPage() {
                                   <RiLightbulbLine className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
                                   <span className="font-medium">{faq.question}</span>
                                 </div>
-                                <RiArrowDownSLine className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${expandedItems.has(`faq-${faq.id}`) ? 'rotate-180' : ''}`} />
+                                <RiArrowDownSLine className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-all duration-500 ease-out ${isItemExpanded(`faq-${faq.id}`) ? 'rotate-180' : ''}`} />
                               </button>
-                              {expandedItems.has(`faq-${faq.id}`) && (
-                                <div className="px-4 pb-4 border-t border-border/20 animate-in slide-in-from-top-2 duration-300">
+                              <div className={`transition-all duration-500 ease-out overflow-hidden ${
+                                isItemExpanded(`faq-${faq.id}`) 
+                                  ? 'max-h-[500px] opacity-100 transform translate-y-0' 
+                                  : 'max-h-0 opacity-0 transform -translate-y-2'
+                              }`}>
+                                <div className={`px-4 pb-4 border-t border-border/20 transition-all duration-500 ease-out delay-75 ${
+                                  isItemExpanded(`faq-${faq.id}`) ? 'transform translate-y-0 opacity-100' : 'transform -translate-y-2 opacity-0'
+                                }`}>
                                   <div className="pt-3 text-muted-foreground">
                                     {faq.answer}
                                   </div>
@@ -555,7 +597,7 @@ export default function HelpPage() {
                                     </div>
                                   </div>
                                 </div>
-                              )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -566,126 +608,24 @@ export default function HelpPage() {
                           <div className="flex items-center gap-2 mb-6">
                             <RiGlobalLine className="h-5 w-5 text-primary" />
                             <h2 className="text-lg font-semibold">Public Questions & Answers</h2>
+                            <Badge variant="outline" className="text-xs">
+                              Community
+                            </Badge>
                           </div>
                           
-                          {/* Ask Public Question Form */}
-                          <div className="bg-gradient-to-l from-white-50 to-emerald-50 p-2 pl-4 rounded-lg border border-green-200">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">Ask a Public Question</h3>
-                              <button
-                                onClick={() => setShowPublicForm(!showPublicForm)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-white-600 text-black rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-                              >
-                                {showPublicForm ? <RiSubtractLine className="w-4 h-4" /> : <RiAddLine className="w-4 h-4" />}
-                                <span>{showPublicForm ? 'Cancel' : 'Add Question'}</span>
-                              </button>
-                            </div>
-                            
-                            {showPublicForm && (
-                              <div className="animate-in slide-in-from-top-2 duration-300">
-                                <form
-                                  onSubmit={(e) => {
-                                    e.preventDefault();
-                                    handleSubmitQuestion(true);
-                                  }}
-                                  className="space-y-4 mt-4 p-4 dark:bg-neutral-800/30 rounded-lg dark:border-neutral-700/50"
-                                >
-                                <div>
-                                  <label htmlFor="public-question" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                    Question
-                                  </label>
-                                  <Input
-                                    id="public-question"
-                                    value={questionForm.question}
-                                    onChange={(e) => setQuestionForm(prev => ({ ...prev, question: e.target.value }))}
-                                    placeholder="What would you like to ask?"
-                                    required
-                                  />
-                                </div>
-
-                                <div>
-                                  <label htmlFor="public-description" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                    Description (optional)
-                                  </label>
-                                  <Textarea
-                                    id="public-description"
-                                    value={questionForm.description}
-                                    onChange={(e) => setQuestionForm(prev => ({ ...prev, description: e.target.value }))}
-                                    placeholder="Provide more details about your question..."
-                                    rows={3}
-                                  />
-                                </div>
-
-                                <div>
-                                  <label htmlFor="public-category" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                    Category
-                                  </label>
-                                  <Select
-                                    value={questionForm.category}
-                                    onValueChange={(value) => setQuestionForm(prev => ({ ...prev, category: value }))}
-                                  >
-                                    <SelectTrigger className="h-10 border-neutral-200 dark:border-neutral-700 bg-white/50 dark:bg-neutral-800/50 hover:bg-white/80 dark:hover:bg-neutral-800/80 transition-colors duration-200">
-                                      <SelectValue placeholder="Select a category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-lg">
-                                      <SelectItem value="general" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">General</SelectItem>
-                                      <SelectItem value="features" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Features</SelectItem>
-                                      <SelectItem value="pricing" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Pricing</SelectItem>
-                                      <SelectItem value="technical" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Technical</SelectItem>
-                                      <SelectItem value="feedback" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Feedback</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div className="flex items-center space-x-3">
-                                  <Checkbox
-                                    id="anonymous-toggle"
-                                    checked={!isLoaded || !user || questionForm.isAnonymous}
-                                    onCheckedChange={(checked) => {
-                                      // Only allow changing if user is signed in
-                                      if (isLoaded && user) {
-                                        setQuestionForm(prev => ({ ...prev, isAnonymous: !!checked }));
-                                      }
-                                    }}
-                                    disabled={!isLoaded || !user}
-                                    className="border-neutral-300 dark:border-neutral-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 disabled:opacity-50"
-                                  />
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <label htmlFor="anonymous-toggle" className={`flex items-center text-sm cursor-pointer transition-colors duration-200 ${
-                                          !isLoaded || !user 
-                                            ? 'text-neutral-400 dark:text-neutral-500 cursor-not-allowed' 
-                                            : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'
-                                        }`}>
-                                          <RiEyeOffLine className="w-4 h-4 mr-1" />
-                                          Post anonymously
-                                          {(!isLoaded || !user) && <span className="ml-1 text-xs">(Required)</span>}
-                                        </label>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top" className="bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs px-2 py-1">
-                                        <p>
-                                          {!isLoaded || !user 
-                                            ? 'Sign in to post with your name, or continue posting anonymously' 
-                                            : 'Your name and profile will not be visible to other users'
-                                          }
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-
-                                <Button
-                                  type="submit"
-                                  disabled={isSubmitting || !questionForm.question.trim()}
-                                  className="w-full bg-white-600 border border-black-300 hover:bg-white-700 disabled:bg-neutral-300 text-black disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:transform-none"
-                                >
-                                  <RiSendPlaneLine className="mr-2 h-4 w-4" />
-                                  {isSubmitting ? 'Submitting...' : 'Submit Question'}
-                                </Button>
-                              </form>
-                              </div>
-                            )}
+                          <div className="text-center py-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Want to ask a question? Visit the <strong>Ask Question</strong> tab to submit your inquiry.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setActiveTab('ask')}
+                              className="text-xs"
+                            >
+                              <RiEditLine className="mr-1 h-3 w-3" />
+                              Ask Question
+                            </Button>
                           </div>
 
                           {isLoadingQuestions ? (
@@ -695,7 +635,12 @@ export default function HelpPage() {
                             </div>
                           ) : (
                             filterAndSortItems(publicQuestions, searchQuery, selectedCategory, sortBy).map((qna) => (
-                              <div key={qna.id} className="border border-border/30 rounded-lg overflow-hidden transition-all duration-200 hover:shadow-md">
+                              <div 
+                                key={qna.id} 
+                                className="border border-border/30 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border/50"
+                                onMouseEnter={() => handleItemHover(`public-${qna.id}`, true)}
+                                onMouseLeave={() => handleItemHover(`public-${qna.id}`, false)}
+                              >
                                 <button
                                   onClick={() => toggleExpanded(`public-${qna.id}`)}
                                   className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-all duration-200"
@@ -720,10 +665,14 @@ export default function HelpPage() {
                                       </div>
                                     </div>
                                   </div>
-                                  <RiArrowDownSLine className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${expandedItems.has(`public-${qna.id}`) ? 'rotate-180' : ''}`} />
+                                  <RiArrowDownSLine className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-300 ${isItemExpanded(`public-${qna.id}`) ? 'rotate-180' : ''}`} />
                                 </button>
-                                {expandedItems.has(`public-${qna.id}`) && (
-                                  <div className="px-4 pb-4 border-t border-border/20 animate-in slide-in-from-top-2 duration-300">
+                                <div className={`transition-all duration-500 ease-out overflow-hidden ${
+                                  isItemExpanded(`public-${qna.id}`) 
+                                    ? 'max-h-[500px] opacity-100 transform translate-y-0' 
+                                    : 'max-h-0 opacity-0 transform translate-y-2'
+                                }`}>
+                                  <div className="px-4 pb-4 border-t border-border/20 transition-opacity duration-500 delay-75">
                                     {qna.description && (
                                       <div className="pt-1 text-sm text-muted-foreground border-b border-border/10 pb-3 mb-3">
                                         <strong>Details:</strong> {qna.description}
@@ -769,7 +718,7 @@ export default function HelpPage() {
                                       </div>
                                     </div>
                                   </div>
-                                )}
+                                </div>
                               </div>
                             ))
                           )}
@@ -780,93 +729,25 @@ export default function HelpPage() {
                         <div className="space-y-4">
                           <div className="flex items-center gap-2 mb-6">
                             <RiShieldCheckLine className="h-5 w-5 text-primary" />
-                            <h2 className="text-lg font-semibold">User Questions & Answers</h2>
+                            <h2 className="text-lg font-semibold">Your Questions & Answers</h2>
                             <Badge variant="outline" className="text-xs">
-                              Authenticated Users Only
+                              Private
                             </Badge>
                           </div>
                           
-                          {/* Ask Private Question Form */}
-                          <div className="bg-gradient-to-l from-white-50 to-emerald-50 p-2 pl-4 rounded-lg border border-green-200">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">Ask a Private Question</h3>
-                              <button
-                                onClick={() => setShowPrivateForm(!showPrivateForm)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-white-600 text-black rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-                              >
-                                {showPrivateForm ? <RiSubtractLine className="w-4 h-4" /> : <RiAddLine className="w-4 h-4" />}
-                                <span>{showPrivateForm ? 'Cancel' : 'Add Question'}</span>
-                              </button>
-                            </div>
-                            
-                            {showPrivateForm && (
-                              <div className="animate-in slide-in-from-top-2 duration-300">
-                                <form
-                                  onSubmit={(e) => {
-                                    e.preventDefault();
-                                    handleSubmitQuestion(false);
-                                  }}
-                                  className="space-y-4 mt-4 p-4 dark:bg-neutral-800/30 rounded-lg dark:border-neutral-700/50"
-                                >
-                                <div>
-                                  <label htmlFor="private-question" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                    Question
-                                  </label>
-                                  <Input
-                                    id="private-question"
-                                    value={questionForm.question}
-                                    onChange={(e) => setQuestionForm(prev => ({ ...prev, question: e.target.value }))}
-                                    placeholder="What would you like to ask?"
-                                    required
-                                  />
-                                </div>
-
-                                <div>
-                                  <label htmlFor="private-description" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                    Description (optional)
-                                  </label>
-                                  <Textarea
-                                    id="private-description"
-                                    value={questionForm.description}
-                                    onChange={(e) => setQuestionForm(prev => ({ ...prev, description: e.target.value }))}
-                                    placeholder="Provide more details about your question..."
-                                    rows={3}
-                                  />
-                                </div>
-
-                                <div>
-                                  <label htmlFor="private-category" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                                    Category
-                                  </label>
-                                  <Select
-                                    value={questionForm.category}
-                                    onValueChange={(value) => setQuestionForm(prev => ({ ...prev, category: value }))}
-                                  >
-                                    <SelectTrigger className="h-10 border-neutral-200 dark:border-neutral-700 bg-white/50 dark:bg-neutral-800/50 hover:bg-white/80 dark:hover:bg-neutral-800/80 transition-colors duration-200">
-                                      <SelectValue placeholder="Select a category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 shadow-lg">
-                                      <SelectItem value="general" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">General</SelectItem>
-                                      <SelectItem value="account" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Account</SelectItem>
-                                      <SelectItem value="billing" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Billing</SelectItem>
-                                      <SelectItem value="features" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Features</SelectItem>
-                                      <SelectItem value="technical" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Technical</SelectItem>
-                                      <SelectItem value="privacy" className="hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors duration-200">Privacy</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <Button
-                                  type="submit"
-                                  disabled={isSubmitting || !questionForm.question.trim()}
-                                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-300 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:transform-none"
-                                >
-                                  <RiSendPlaneLine className="mr-2 h-4 w-4" />
-                                  {isSubmitting ? 'Submitting...' : 'Submit Private Question'}
-                                </Button>
-                              </form>
-                              </div>
-                            )}
+                          <div className="text-center py-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Want to ask a private question? Visit the <strong>Ask Question</strong> tab to submit your inquiry.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setActiveTab('ask')}
+                              className="text-xs"
+                            >
+                              <RiEditLine className="mr-1 h-3 w-3" />
+                              Ask Question
+                            </Button>
                           </div>
 
                           {isLoadingQuestions ? (
@@ -876,7 +757,12 @@ export default function HelpPage() {
                             </div>
                           ) : (
                             filterAndSortItems(privateQuestions, searchQuery, selectedCategory, sortBy).map((qna) => (
-                              <div key={qna.id} className="border border-border/30 rounded-lg overflow-hidden transition-all duration-200 hover:shadow-md">
+                              <div 
+                                key={qna.id} 
+                                className="border border-border/30 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border/50"
+                                onMouseEnter={() => handleItemHover(`user-${qna.id}`, true)}
+                                onMouseLeave={() => handleItemHover(`user-${qna.id}`, false)}
+                              >
                                 <button
                                   onClick={() => toggleExpanded(`user-${qna.id}`)}
                                   className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-all duration-200"
@@ -894,10 +780,14 @@ export default function HelpPage() {
                                       </div>
                                     </div>
                                   </div>
-                                  <RiArrowDownSLine className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${expandedItems.has(`user-${qna.id}`) ? 'rotate-180' : ''}`} />
+                                  <RiArrowDownSLine className={`h-4 w-4 text-muted-foreground flex-shrink-0 transition-transform duration-300 ${isItemExpanded(`user-${qna.id}`) ? 'rotate-180' : ''}`} />
                                 </button>
-                                {expandedItems.has(`user-${qna.id}`) && (
-                                  <div className="px-4 pb-4 border-t border-border/20 animate-in slide-in-from-top-2 duration-300">
+                                <div className={`transition-all duration-500 ease-out overflow-hidden ${
+                                  isItemExpanded(`user-${qna.id}`) 
+                                    ? 'max-h-[500px] opacity-100 transform translate-y-0' 
+                                    : 'max-h-0 opacity-0 transform translate-y-2'
+                                }`}>
+                                  <div className="px-4 pb-4 border-t border-border/20 transition-opacity duration-500 delay-75">
                                     {qna.description && (
                                       <div className="pt-3 text-sm text-muted-foreground border-b border-border/10 pb-3 mb-3">
                                         <strong>Details:</strong> {qna.description}
@@ -926,15 +816,217 @@ export default function HelpPage() {
                                       </Badge>
                                     </div>
                                   </div>
-                                )}
+                                </div>
                               </div>
                             ))
                           )}
                         </div>
                       )}
 
+                      {activeTab === 'ask' && (
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-2 mb-6">
+                            <RiEditLine className="h-5 w-5 text-primary" />
+                            <h2 className="text-lg font-semibold">Ask a Question</h2>
+                          </div>
+                          
+                          {/* Single Form */}
+                          <div className="max-w-2xl mx-auto">
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleSubmitQuestion(questionForm.isPublic);
+                              }}
+                              className="space-y-6"
+                            >
+                              {/* Question Type Radio Buttons */}
+                              <div>
+                                <label className="block text-sm font-medium mb-3">
+                                  Question Type
+                                </label>
+                                <div className="space-y-3">
+                                  <div className="flex items-start space-x-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuestionForm(prev => ({ ...prev, isPublic: true }))}
+                                      className="flex items-center space-x-2 p-3 border rounded-lg transition-colors hover:bg-muted/50 w-full text-left"
+                                    >
+                                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                        questionForm.isPublic ? 'border-primary bg-primary' : 'border-muted-foreground'
+                                      }`}>
+                                        {questionForm.isPublic && <div className="w-2 h-2 rounded-full bg-background"></div>}
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <RiGlobalLine className="h-4 w-4" />
+                                          <span className="font-medium">Public Question</span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                          Visible to all users. Great for general questions that might help others.
+                                        </p>
+                                      </div>
+                                    </button>
+                                  </div>
+                                  
+                                  <div className="flex items-start space-x-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuestionForm(prev => ({ ...prev, isPublic: false }))}
+                                      className="flex items-center space-x-2 p-3 border rounded-lg transition-colors hover:bg-muted/50 w-full text-left"
+                                      disabled={!user}
+                                    >
+                                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                        !questionForm.isPublic ? 'border-primary bg-primary' : 'border-muted-foreground'
+                                      }`}>
+                                        {!questionForm.isPublic && <div className="w-2 h-2 rounded-full bg-background"></div>}
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <RiShieldCheckLine className="h-4 w-4" />
+                                          <span className="font-medium">Private Question</span>
+                                          {!user && (
+                                            <Badge variant="outline" className="text-xs">
+                                              Login Required
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                          Only visible to you and our support team. Perfect for account-specific inquiries.
+                                        </p>
+                                      </div>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Question Input */}
+                              <div>
+                                <label htmlFor="question" className="block text-sm font-medium mb-2">
+                                  Question
+                                </label>
+                                <Input
+                                  id="question"
+                                  value={questionForm.question}
+                                  onChange={(e) => setQuestionForm(prev => ({ ...prev, question: e.target.value }))}
+                                  placeholder="What would you like to ask?"
+                                  required
+                                />
+                              </div>
+
+                              {/* Description Input */}
+                              <div>
+                                <label htmlFor="description" className="block text-sm font-medium mb-2">
+                                  Description (optional)
+                                </label>
+                                <Textarea
+                                  id="description"
+                                  value={questionForm.description}
+                                  onChange={(e) => setQuestionForm(prev => ({ ...prev, description: e.target.value }))}
+                                  placeholder="Provide more details about your question..."
+                                  rows={3}
+                                />
+                              </div>
+
+                              {/* Category Select */}
+                              <div>
+                                <label htmlFor="category" className="block text-sm font-medium mb-2">
+                                  Category
+                                </label>
+                                <Select
+                                  value={questionForm.category}
+                                  onValueChange={(value) => setQuestionForm(prev => ({ ...prev, category: value }))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a category" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="general">General</SelectItem>
+                                    <SelectItem value="features">Features</SelectItem>
+                                    <SelectItem value="pricing">Pricing</SelectItem>
+                                    <SelectItem value="technical">Technical</SelectItem>
+                                    <SelectItem value="feedback">Feedback</SelectItem>
+                                    {!questionForm.isPublic && (
+                                      <>
+                                        <SelectItem value="account">Account</SelectItem>
+                                        <SelectItem value="billing">Billing</SelectItem>
+                                        <SelectItem value="privacy">Privacy</SelectItem>
+                                      </>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Anonymous Option (only for public questions) */}
+                              {questionForm.isPublic && (
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    id="anonymous-toggle"
+                                    checked={!isLoaded || !user || questionForm.isAnonymous}
+                                    onCheckedChange={(checked) => {
+                                      if (isLoaded && user) {
+                                        setQuestionForm(prev => ({ ...prev, isAnonymous: !!checked }));
+                                      }
+                                    }}
+                                    disabled={!isLoaded || !user}
+                                  />
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <label htmlFor="anonymous-toggle" className={`flex items-center text-sm cursor-pointer transition-colors duration-200 ${
+                                          !isLoaded || !user 
+                                            ? 'text-muted-foreground cursor-not-allowed' 
+                                            : 'hover:text-foreground'
+                                        }`}>
+                                          <RiEyeOffLine className="w-4 h-4 mr-1" />
+                                          Post anonymously
+                                          {(!isLoaded || !user) && <span className="ml-1 text-xs">(Required)</span>}
+                                        </label>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p>
+                                          {!isLoaded || !user 
+                                            ? 'Sign in to post with your name, or continue posting anonymously' 
+                                            : 'Your name and profile will not be visible to other users'
+                                          }
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              )}
+
+                              {/* Submit Button */}
+                              {(!questionForm.isPublic && !user) ? (
+                                <div className="text-center py-4">
+                                  <p className="text-sm text-muted-foreground mb-4">
+                                    Please sign in to ask private questions
+                                  </p>
+                                  <Button 
+                                    type="button"
+                                    onClick={() => window.location.href = '/login'}
+                                    variant="outline"
+                                  >
+                                    <RiLoginBoxLine className="mr-2 h-4 w-4" />
+                                    Sign In
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  type="submit"
+                                  disabled={isSubmitting || !questionForm.question.trim()}
+                                  className="w-full"
+                                >
+                                  <RiSendPlaneLine className="mr-2 h-4 w-4" />
+                                  {isSubmitting ? 'Submitting...' : `Submit ${questionForm.isPublic ? 'Public' : 'Private'} Question`}
+                                </Button>
+                              )}
+                            </form>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Empty States */}
-                      {!isLoadingQuestions && (
+                      {!isLoadingQuestions && activeTab !== 'ask' && (
                         ((activeTab === 'faq' && filterAndSortItems(faqData, searchQuery, selectedCategory, sortBy).length === 0) ||
                         (activeTab === 'public' && filterAndSortItems(publicQuestions, searchQuery, selectedCategory, sortBy).length === 0) ||
                         (activeTab === 'user' && filterAndSortItems(privateQuestions, searchQuery, selectedCategory, sortBy).length === 0)) && (
@@ -945,7 +1037,7 @@ export default function HelpPage() {
                           <h4 className="text-sm font-medium mb-2">No results found</h4>
                           <p className="text-sm text-muted-foreground">
                             {activeTab === 'user' && privateQuestions.length === 0 && searchQuery === '' && selectedCategory === 'all'
-                              ? "You haven't asked any questions yet. Submit your first question above!"
+                              ? "You haven't asked any questions yet. Visit the Ask Question tab to submit your first question!"
                               : "Try adjusting your search or filter criteria"
                             }
                           </p>

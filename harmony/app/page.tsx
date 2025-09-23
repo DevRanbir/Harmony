@@ -59,7 +59,7 @@ export default function HomePage() {
         <RiSeedlingLine className="w-6 h-6" />
       ),
       label: "FAQ",
-      onClick: () => router.push("/faq"),
+      onClick: () => router.push("/help"),
     },
     {
       icon: (
