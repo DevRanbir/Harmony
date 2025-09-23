@@ -33,7 +33,6 @@ import { useSettings } from "@/contexts/settings-context";
 export default function Chat() {
 // Helper: detect if user is asking for a location (very basic, can be improved)
 function extractLocationQuery(text: string): string | null {
-  console.log("Checking location query for:", text); // Debug log
   
   // Enhanced patterns to catch more location queries
   const patterns = [
@@ -49,42 +48,33 @@ function extractLocationQuery(text: string): string | null {
     const match = text.match(pattern);
     if (match && match[1]) {
       const location = match[1].trim();
-      console.log("Found potential location:", location); // Debug log
       // Filter out very short or common words that might not be locations
       if (location.length > 2 && !['me', 'you', 'it', 'this', 'that', 'here', 'there'].includes(location.toLowerCase())) {
-        console.log("Location validated:", location); // Debug log
         return location;
       }
     }
   }
-  console.log("No location found"); // Debug log
   return null;
 }
 
 // Helper: fetch lat/lng from Google Maps Geocoding API
 async function fetchLatLng(location: string): Promise<{lat: number, lng: number, description: string} | null> {
   try {
-    console.log("Fetching coordinates for:", location); // Debug log
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.log("No Google Maps API key found"); // Debug log
       return null;
     }
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
-    console.log("Making request to:", url); // Debug log
     const res = await fetch(url);
     const data = await res.json();
-    console.log("API response:", data); // Debug log
     if (data.status === "OK" && data.results.length > 0) {
       const { lat, lng } = data.results[0].geometry.location;
       const description = data.results[0].formatted_address;
-      console.log("Found coordinates:", { lat, lng, description }); // Debug log
       return { lat, lng, description };
     }
-    console.log("No valid results found"); // Debug log
     return null;
   } catch (error) {
-    console.error("Error fetching coordinates:", error); // Debug log
+    console.error("Error fetching coordinates:", error);
     return null;
   }
 }

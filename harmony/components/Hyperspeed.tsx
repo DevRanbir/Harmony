@@ -1466,7 +1466,6 @@ const Hyperspeed: FC<HyperspeedProps> = ({ effectOptions = {} }) => {
   const appRef = useRef<App | null>(null);
 
   useEffect(() => {
-    console.log('Hyperspeed useEffect triggered');
     if (appRef.current) {
       appRef.current.dispose();
       const container = document.getElementById('lights');
@@ -1479,11 +1478,9 @@ const Hyperspeed: FC<HyperspeedProps> = ({ effectOptions = {} }) => {
 
     const container = hyperspeed.current;
     if (!container) {
-      console.log('No container found');
       return;
     }
 
-    console.log('Container found, initializing Hyperspeed');
     const options = { ...mergedOptions };
     if (typeof options.distortion === 'string') {
       options.distortion = distortions[options.distortion];
@@ -1492,7 +1489,6 @@ const Hyperspeed: FC<HyperspeedProps> = ({ effectOptions = {} }) => {
     const myApp = new App(container, options);
     appRef.current = myApp;
     myApp.loadAssets().then(() => {
-      console.log('Assets loaded, calling init');
       myApp.init();
     });
 

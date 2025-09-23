@@ -153,7 +153,6 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
   const clearAllBookmarks = () => {
     setBookmarks([]);
     setIsLoading(false);
-    console.log('Cleared all bookmarks from memory');
   };
 
   return (

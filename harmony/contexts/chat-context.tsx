@@ -137,7 +137,6 @@ export function ChatProvider({ children, onHistoryUpdate }: {
     setIsLoading(false);
     setIsSending(false);
     setIsThinking(false);
-    console.log('Cleared all chat data from memory');
   };
 
   // Single effect to handle both initial load and date changes

@@ -80,10 +80,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   // Function to detect and temporarily switch mode based on user query
   const temporarySwitchMode = useMemo(() => (targetMode: UserSettings['writingStyle'], message: string) => {
-    console.log('temporarySwitchMode called with:', { currentStyle: settings.writingStyle, message, wasAutoMode }); // Debug
     
     if (settings.writingStyle === 'auto') {
-      console.log('Detecting mode for message:', message); // Debug
       setWasAutoMode(true);
       
       // Detect what mode to switch to based on message content
@@ -108,7 +106,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         detectedMode = 'formal';
       }
       
-      console.log('Auto mode detected:', detectedMode, 'for message:', message); // Debug log
       
       // Set both the display setting and the active mode for system prompt
       setCurrentActiveMode(detectedMode);
@@ -149,7 +146,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     const effectiveMode = settings.writingStyle;
     
-    console.log('getSystemPrompt - wasAutoMode:', wasAutoMode, 'settings.writingStyle:', settings.writingStyle, 'effectiveMode:', effectiveMode);
 
     return `Harmony by Ranbir. ${styleMap[effectiveMode]} ${langMap[settings.language]} only. Max ${Math.min(settings.maxLength, 512)} chars. Essential info only. Be direct.`;
   }, [settings, wasAutoMode]);
@@ -181,7 +177,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     // For auto mode, ask AI to determine the appropriate style first
     if (settings.writingStyle === 'auto') {
-      console.log('Auto mode: Getting AI to decide style for message:', message);
       
       try {
         const response = await fetch('/api/chat/gemini', {
@@ -225,7 +220,6 @@ Respond with ONLY one word - the style name. No explanation, no other text.`,
             setCurrentActiveMode(effectiveMode);
             setSettings(prev => ({ ...prev, writingStyle: effectiveMode }));
             
-            console.log('AI detected style:', effectiveMode, 'for message:', message);
           } else {
             console.warn('Invalid style detected:', detectedStyle, 'falling back to concise');
             effectiveMode = 'concise';
@@ -240,7 +234,6 @@ Respond with ONLY one word - the style name. No explanation, no other text.`,
       }
     }
 
-    console.log('getSystemPromptForMessage final mode:', effectiveMode, 'for message:', message);
 
     return `Harmony by Ranbir. ${styleMap[effectiveMode]} ${langMap[settings.language]} only. Max ${Math.min(settings.maxLength, 512)} chars. Essential info only. Be direct.`;
   }, [settings]);

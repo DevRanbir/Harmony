@@ -38,13 +38,13 @@ let database: Database | null = null;
 try {
   if (hasFirebaseConfig()) {
     database = getDatabase(app);
-    console.log('✅ Firebase initialized successfully');
+    console.log('database initialized successfully');
   } else {
-    console.warn('⚠️ Firebase config missing. Using localStorage fallback.');
+    console.warn('database config missing. Using localStorage fallback.');
   }
 } catch (error) {
-  console.error('❌ Firebase initialization failed:', error);
-  console.warn('⚠️ Using localStorage fallback.');
+  console.error('database initialization failed:', error);
+  console.warn('Using localStorage fallback.');
 }
 
 export { database };

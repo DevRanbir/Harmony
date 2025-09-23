@@ -138,7 +138,7 @@ export function ChatHistorySection() {
       </div>
 
       {/* Chat History List */}
-      <div className="space-y-2 max-h-64 overflow-y-auto">
+      <div className="space-y-2 overflow-y-auto">
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (

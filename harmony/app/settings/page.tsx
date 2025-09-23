@@ -151,11 +151,9 @@ export default function SettingsPage() {
     setIsDeleting(dataType);
     
     try {
-      console.log(`Attempting to delete ${dataType} data for user: ${user.username}`);
       const success = await deleteUserData(user.username, dataType);
       
       if (success) {
-        console.log(`Successfully deleted ${dataType} data`);
         
         // Clear cached data from contexts
         if (dataType === 'chats' || dataType === 'all') {

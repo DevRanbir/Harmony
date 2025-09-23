@@ -176,7 +176,6 @@ export default function HelpPage() {
     
     // Load public questions
     const unsubscribePublic = listenToPublicQuestions((questions) => {
-      console.log('Public questions loaded:', questions);
       setPublicQuestions(questions);
       setIsLoadingQuestions(false);
     });
@@ -185,9 +184,7 @@ export default function HelpPage() {
     let unsubscribePrivate: (() => void) | null = null;
     const userIdentifier = getUserIdentifier(user || null);
     if (userIdentifier) {
-      console.log('Loading private questions for user:', userIdentifier);
       unsubscribePrivate = listenToPrivateQuestions(userIdentifier, (questions) => {
-        console.log('Private questions loaded for', userIdentifier, ':', questions);
         setPrivateQuestions(questions);
       });
     }
@@ -232,10 +229,8 @@ export default function HelpPage() {
     setIsSubmitting(true);
     try {
       const isPublicQuestion = isPublic !== undefined ? isPublic : questionForm.isPublic;
-      console.log('Submitting question. isPublic:', isPublicQuestion, 'questionForm.isPublic:', questionForm.isPublic);
       
       if (isPublicQuestion) {
-        console.log('Submitting as public question');
         // Force anonymous for signed out users, otherwise use user preference
         const forceAnonymous = !isLoaded || !user;
         const authorName = (forceAnonymous || questionForm.isAnonymous)
@@ -251,13 +246,11 @@ export default function HelpPage() {
           isAnonymous: forceAnonymous || questionForm.isAnonymous
         });
       } else {
-        console.log('Submitting as private question');
         const userIdentifier = getUserIdentifier(user || null);
         if (!userIdentifier) {
           throw new Error('Must be logged in to submit private questions');
         }
         
-        console.log('Private question user identifier:', userIdentifier);
         await submitPrivateQuestion(userIdentifier, {
           question: questionForm.question,
           description: questionForm.description || undefined,

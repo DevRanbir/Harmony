@@ -86,7 +86,6 @@ export function ChatHistoryProvider({ children }: { children: React.ReactNode })
   const clearAllHistory = () => {
     setChatHistory([]);
     setIsLoading(false);
-    console.log('Cleared all chat history from memory');
   };
 
   return (
