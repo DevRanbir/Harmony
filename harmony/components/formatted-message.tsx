@@ -329,7 +329,7 @@ export function FormattedMessage({ content }: FormattedMessageProps) {
             let title = 'Code Snippet';
             
             if (React.isValidElement(children) && children.props) {
-              const className = (children.props as any).className || '';
+              const className = (children.props as { className?: string }).className || '';
               const langMatch = className.match(/language-(\w+)/);
               if (langMatch) {
                 language = langMatch[1];

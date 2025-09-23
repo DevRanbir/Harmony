@@ -416,7 +416,7 @@ export default function HomePage() {
             >
               <div className="bg-gradient-to-br from-emerald/10 via-transparent to-teal/10 backdrop-blur-xl border border-emerald/20 rounded-2xl p-6 md:p-8">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-foreground mb-2">Your Team's Digital Workspace</h3>
+                <h3 className="text-2xl font-bold text-foreground mb-2">Your Team&apos;s Digital Workspace</h3>
                 <p className="text-muted-foreground">Everything your team needs in one harmonious platform</p>
               </div>
               

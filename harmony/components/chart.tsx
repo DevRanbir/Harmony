@@ -562,7 +562,16 @@ const Chart: React.FC<ChartProps> = ({ config: rawConfig, className = "", isInMa
         );
         
         // Custom label function for always visible labels
-        const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
+        const renderCustomLabel = (props: Record<string, unknown>) => {
+          const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props as {
+            cx: number;
+            cy: number;
+            midAngle: number;
+            innerRadius: number;
+            outerRadius: number;
+            percent: number;
+            name: string;
+          };
           const RADIAN = Math.PI / 180;
           
           // Only show label if percentage is significant enough
