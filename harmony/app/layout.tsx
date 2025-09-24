@@ -10,6 +10,8 @@ import { RouteGuard } from '@/components/route-guard';
 import { PagePreloader } from '@/components/page-preloader';
 import { NavigationLoader } from '@/components/navigation-loader';
 import { PageTransition } from '@/components/page-transition';
+import { getClerkUrls, logClerkConfig } from '@/lib/clerk-config';
+import { EnvDebugger } from '@/components/env-debugger';
 
 import "./globals.css";
 
@@ -28,6 +30,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get properly configured URLs for production
+  const clerkUrls = getClerkUrls();
+  
+  // Log configuration in development
+  if (process.env.NODE_ENV === 'development') {
+    logClerkConfig();
+  }
+
   return (
     <ClerkProvider
       appearance={{
@@ -37,6 +47,10 @@ export default function RootLayout({
         },
       }}
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || clerkUrls.signInUrl}
+      signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || clerkUrls.signUpUrl}
+      afterSignInUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || clerkUrls.afterSignInUrl}
+      afterSignUpUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || clerkUrls.afterSignUpUrl}
       signInForceRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL}
       signUpForceRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL}
     >
@@ -59,6 +73,8 @@ export default function RootLayout({
               </AuthProvider>
             </SettingsProvider>
           </ThemeProvider>
+          {/* Development environment debugger */}
+          <EnvDebugger />
           {/* Clerk CAPTCHA container - prevent initialization errors */}
           <div id="clerk-captcha" style={{ display: 'none' }}></div>
         </body>
