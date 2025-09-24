@@ -10,13 +10,13 @@ interface RouteGuardProps {
 }
 
 export function RouteGuard({ children, protectedRoutes = ['/dashboard', '/admin'] }: RouteGuardProps) {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated, isLoading, authTimeout, retryAuth } = useAuthContext();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Don't do anything while loading
-    if (isLoading) return;
+    // Don't do anything while loading, unless there's a timeout
+    if (isLoading && !authTimeout) return;
 
     // Skip protection for SSO callback and login routes
     if (pathname === '/login/sso-callback' || pathname.startsWith('/login')) {
@@ -32,17 +32,46 @@ export function RouteGuard({ children, protectedRoutes = ['/dashboard', '/admin'
     });
 
     // Redirect to login if accessing protected route while not authenticated
-    if (isProtectedRoute && !isAuthenticated) {
+    // or if auth timed out and we're on a protected route
+    if (isProtectedRoute && (!isAuthenticated || authTimeout)) {
       const loginUrl = `/login?redirect_url=${encodeURIComponent(pathname)}`;
       router.push(loginUrl);
     }
-  }, [isAuthenticated, isLoading, pathname, router, protectedRoutes]);
+  }, [isAuthenticated, isLoading, authTimeout, pathname, router, protectedRoutes]);
 
-  // Show loading state while checking auth
-  if (isLoading) {
+  // Show loading state while checking auth, unless there's a timeout
+  if (isLoading && !authTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If auth timed out, show a timeout message with retry option
+  if (authTimeout && isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-lg font-medium">Authentication timeout</div>
+          <div className="text-sm text-muted-foreground">
+            Taking longer than expected. Please try again or refresh the page.
+          </div>
+          <div className="flex gap-2 justify-center">
+            <button 
+              onClick={retryAuth}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

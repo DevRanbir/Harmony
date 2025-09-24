@@ -7,7 +7,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: any;
   isLoading: boolean;
+  authTimeout: boolean;
   refreshAuth: () => void;
+  retryAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,11 +27,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [lastCheck, setLastCheck] = useState<number>(0);
+  const [authTimeout, setAuthTimeout] = useState(false);
 
   // Check interval (5 minutes)
   const CHECK_INTERVAL = 5 * 60 * 1000;
   // Debounce interval for rapid state changes (1 second)
   const DEBOUNCE_INTERVAL = 1000;
+  // Auth timeout (15 seconds for initial load, 10 seconds for subsequent checks)
+  const AUTH_TIMEOUT = 15000;
+  const SUBSEQUENT_AUTH_TIMEOUT = 10000;
 
   const updateAuthState = useCallback((authenticated: boolean, userData: any = null) => {
     setIsAuthenticated(authenticated);
@@ -57,12 +63,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoaded, isSignedIn, userId, user, updateAuthState]);
 
+  const retryAuth = useCallback(() => {
+    setAuthTimeout(false);
+    setIsLoading(true);
+    // Force a re-check of auth state
+    refreshAuth();
+  }, [refreshAuth]);
+
   // Initial auth check when Clerk loads
   useEffect(() => {
     if (isLoaded) {
       updateAuthState(!!isSignedIn && !!userId, user);
     }
   }, [isLoaded, isSignedIn, userId, user, updateAuthState]);
+
+  // Timeout mechanism for initial auth loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isLoading && !isLoaded && !authTimeout) {
+        console.warn('Auth loading timeout reached, forcing completion');
+        setAuthTimeout(true);
+        setIsLoading(false);
+        // Try to get auth state from localStorage as fallback
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('harmony_auth_state');
+          if (stored) {
+            const { isAuthenticated: storedAuth } = JSON.parse(stored);
+            setIsAuthenticated(storedAuth);
+          }
+        }
+      }
+    }, AUTH_TIMEOUT);
+
+    // Clear timeout if auth loads successfully
+    if (isLoaded) {
+      clearTimeout(timeoutId);
+      setAuthTimeout(false);
+    }
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoaded, isLoading, authTimeout]);
 
   // Listen for auth state changes more aggressively during SSO flow
   useEffect(() => {
@@ -127,7 +167,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     user,
     isLoading: isLoading || !isLoaded,
+    authTimeout,
     refreshAuth,
+    retryAuth,
   };
 
   return (

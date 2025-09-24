@@ -2,7 +2,7 @@
 
 import { useAuth } from '@clerk/clerk-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { LoadingSkeleton } from '@/components/loading-skeleton';
 
 interface ClientRouteGuardProps {
@@ -20,6 +20,7 @@ export function ClientRouteGuard({
 }: ClientRouteGuardProps) {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const [authTimeout, setAuthTimeout] = useState(false);
 
   useEffect(() => {
     if (isLoaded && requireAuth && !isSignedIn) {
@@ -27,8 +28,25 @@ export function ClientRouteGuard({
     }
   }, [isLoaded, isSignedIn, requireAuth, redirectTo, router]);
 
-  // Show loading while auth is loading
-  if (!isLoaded) {
+  // Timeout mechanism for Clerk auth loading
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!isLoaded && !authTimeout) {
+        console.warn('Clerk auth loading timeout reached');
+        setAuthTimeout(true);
+      }
+    }, 15000); // 15 second timeout
+
+    if (isLoaded) {
+      clearTimeout(timeoutId);
+      setAuthTimeout(false);
+    }
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoaded, authTimeout]);
+
+  // Show loading while auth is loading, unless timed out
+  if (!isLoaded && !authTimeout) {
     if (lightLoading) {
       // Light loading state for pages that have their own loading.tsx
       return (
@@ -38,6 +56,26 @@ export function ClientRouteGuard({
       );
     }
     return <LoadingSkeleton />;
+  }
+
+  // If auth timed out, show timeout message
+  if (authTimeout && !isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-lg font-medium">Authentication timeout</div>
+          <div className="text-sm text-muted-foreground">
+            Taking longer than expected. Please refresh the page.
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // If auth is required but user is not signed in, show nothing (redirect will happen)
