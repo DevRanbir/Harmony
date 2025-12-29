@@ -1,143 +1,92 @@
-# Harmony - The Ultimate Collaboration Platform
+# 🚀 Harmony
 
-> **"Collaborate with ease"** - A modern, AI-powered platform designed for seamless team collaboration and intelligent assistance.
+> "Collaborate with ease" - The ultimate AI-powered collaboration platform for modern teams. 
 
-![Harmony Banner](https://img.shields.io/badge/Harmony-AI%20Collaboration%20Platform-blue?style=for-the-badge)
+---
 
-## 🌟 Project Overview
+## 📖 Description
 
-**Harmony** is a cutting-edge collaboration platform built with Next.js 15, featuring AI-powered chat capabilities, real-time messaging, interactive maps, 3D visualizations, and comprehensive team management tools. Created by **Ranbir**, this platform combines modern web technologies to deliver an exceptional user experience.
+Harmony is a cutting-edge collaboration platform built with Next.js 15, featuring AI-powered chat capabilities powered by Google Gemini, real-time messaging, interactive maps, stunning 3D visualizations, and comprehensive team management tools.  It combines modern web technologies to deliver an exceptional user experience for seamless team collaboration.
 
-## 🏗️ Core Architecture
+What makes it unique:
+- AI-powered chat with Google Gemini 1.5 Flash
+- Real-time messaging with Firebase
+- Interactive Google Maps integration
+- Stunning 3D hyperspeed visualizations with Three.js
+- Enterprise-grade authentication with Clerk
+- Modern, responsive UI with Radix UI components
 
-### Tech Stack Foundation
-- **Frontend Framework**: Next.js 15 (App Router) with React 19
-- **Language**: TypeScript for type safety
-- **Styling**: Tailwind CSS with Radix UI components
-- **Authentication**: Clerk for secure user management
-- **Database**: Firebase Realtime Database
-- **AI Integration**: Google Gemini 1.5 Flash for intelligent chat
-- **Maps**: Google Maps API for location services
-- **3D Graphics**: Three.js with post-processing effects
-- **State Management**: React Context API
-- **Animations**: Framer Motion
+---
 
-### Project Structure
-```
-├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes (Gemini chat, auth)
-│   ├── dashboard/         # Main chat interface
-│   ├── map/              # Interactive maps
-│   ├── prices/           # Subscription management
-│   ├── profile/          # User profiles
-│   ├── settings/         # App configuration
-│   └── login/            # Authentication flows
-├── components/           # Reusable UI components
-├── contexts/            # React Context providers
-├── hooks/               # Custom React hooks
-├── lib/                 # Utility libraries & services
-└── public/              # Static assets
-```
+## ✨ Features
 
-## 🎯 Core Features
+- **AI-Powered Chat System** – Context-aware conversations with Gemini 1.5 Flash
+- **Real-time Messaging** – Instant message delivery with Firebase Realtime Database
+- **Message Management** – Edit, delete, and regenerate AI responses
+- **Chart Generation** – AI can create visual charts on demand
+- **Interactive Maps** – Google Maps with location search and navigation
+- **3D Visualizations** – Hyperspeed highway animation with Three.js
+- **Enterprise Authentication** – Clerk SSO with route protection
+- **User Profiles** – Comprehensive profile and settings management
+- **Dark/Light Themes** – Adaptive theming with smooth transitions
+- **Bookmarks System** – Save and organize important chats
+- **Subscription Management** – Pricing and subscription tiers
+- **Responsive Design** – Optimized for all devices
 
-### 1. **AI-Powered Chat System** 🤖
-- **Gemini 1.5 Flash Integration**: Advanced AI conversations
-- **Context-Aware Responses**: Maintains conversation history
-- **Real-time Messaging**: Instant message delivery
-- **Message Management**: Edit, delete, regenerate responses
-- **Chart Generation**: AI can create visual charts on demand
-- **Location Integration**: Smart location queries with map integration
+---
 
-### 2. **Advanced Authentication** 🔐
-- **Clerk Integration**: Enterprise-grade authentication
-- **SSO Support**: Single Sign-On capabilities
-- **Route Protection**: Client and server-side guards
-- **Session Management**: Persistent authentication state
-- **User Profiles**: Comprehensive user management
+## 🧠 Tech Stack
 
-### 3. **Interactive Maps** 🗺️
-- **Google Maps Integration**: Full-featured mapping
-- **Location Search**: Intelligent location queries
-- **Multiple Map Types**: Roadmap, satellite, hybrid, terrain
-- **Dark/Light Themes**: Adaptive map styling
-- **Real-time Navigation**: Direction and route planning
+**Frontend**
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Radix UI Components
+- Framer Motion
 
-### 4. **3D Visualizations** ✨
-- **Hyperspeed Component**: Stunning 3D highway animation
-- **Three.js Integration**: Advanced 3D graphics
-- **Post-processing Effects**: Bloom, SMAA anti-aliasing
-- **Interactive Controls**: Mouse/touch interaction
-- **Performance Optimized**: Smooth 60fps animations
+**Backend**
+- Firebase Realtime Database
+- Next.js API Routes
 
-### 5. **Modern UI/UX** 🎨
-- **Radix UI Components**: Accessible, unstyled components
-- **Tailwind CSS**: Utility-first styling
-- **Dark/Light Mode**: System-aware theming
-- **Responsive Design**: Mobile-first approach
-- **Smooth Animations**: Framer Motion transitions
-- **Loading States**: Skeleton loaders and smooth transitions
+**Authentication**
+- Clerk (SSO & Session Management)
 
-## 🔧 Key Components & Architecture
+**AI / ML**
+- Google Gemini 1.5 Flash
 
-### Context Providers
-- **AuthContext**: Manages user authentication state
-- **ChatContext**: Handles chat functionality and history
-- **ThemeContext**: Controls dark/light mode
-- **SettingsContext**: Application configuration
-- **BookmarksContext**: Message bookmarking system
+**Maps & Visualization**
+- Google Maps API
+- Three.js
+- Postprocessing Effects
 
-### Core Services
-- **GeminiService**: AI chat integration
-- **FirebaseService**: Database operations
-- **ChatUtils**: Chat utility functions
-- **Subscription**: Payment and subscription management
+**UI Components**
+- Lottie Animations
+- Recharts for data visualization
+- React Markdown
 
-### Security & Performance
-- **Route Guards**: Protected routes with authentication
-- **Middleware**: Request/response processing
-- **Error Boundaries**: Graceful error handling
-- **Performance Monitoring**: Auth performance tracking
-- **Optimized Loading**: Code splitting and lazy loading
+---
 
-## 🚀 Getting Started
+## 🏗️ Architecture / Workflow
 
-### Prerequisites
-- Node.js 18+ 
-- npm/yarn/pnpm
-- Firebase project
-- Google Maps API key
-- Gemini AI API key
-- Clerk account
-
-### Environment Setup
-Create a `.env.local` file with:
-
-```env
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
-CLERK_SECRET_KEY=your_clerk_secret
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/dashboard
-
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project.firebaseio.com/
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-
-# Google Services
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_maps_api_key
-GEMINI_API_KEY=your_gemini_api_key
+```text
+User → Clerk Auth → Dashboard → AI Chat (Gemini) → Firebase Storage → Real-time Sync
+                              ↓
+                    Maps Integration → 3D Visualizations → Settings Management
 ```
 
-### Installation & Development
+---
+
+## ⚙️ Installation & Setup
 
 ```bash
-# Clone and install dependencies
+# Clone the repository
+git clone https://github.com/DevRanbir/Harmony.git
+
+# Navigate to project
+cd Harmony/harmony
+
+# Install dependencies
 npm install
 
 # Start development server
@@ -148,116 +97,150 @@ npm run build
 
 # Start production server
 npm start
-
-# Lint code
-npm run lint
 ```
-
-Visit [http://localhost:3000](http://localhost:3000) to see the application.
-
-## 📱 Key Pages & Features
-
-### Homepage (`/`)
-- **Hyperspeed 3D Animation**: Eye-catching entry experience
-- **Interactive Dock**: macOS-style navigation
-- **Feature Highlights**: Key platform capabilities
-- **Authentication CTAs**: Sign-up/sign-in prompts
-
-### Dashboard (`/dashboard`)
-- **AI Chat Interface**: Main conversation area
-- **Sidebar Navigation**: Quick access to features
-- **Settings Panel**: Customization options
-- **Real-time Updates**: Live message synchronization
-
-### Maps (`/map`)
-- **Interactive Google Maps**: Full-featured mapping
-- **Location Search**: Find and navigate to places
-- **Map Type Controls**: Switch between map views
-- **Theme Integration**: Matches app theme
-
-### Pricing (`/prices`)
-- **Clerk Pricing Table**: Subscription management
-- **Plan Comparison**: Feature breakdowns
-- **Payment Integration**: Secure billing
-
-## 🔌 API Routes
-
-### `/api/chat/gemini`
-- **POST**: Send messages to Gemini AI
-- **Features**: Context awareness, chart generation, error handling
-- **Security**: Rate limiting and input validation
-
-### `/api/auth/*`
-- **Clerk Webhooks**: User management
-- **Session Handling**: Authentication state
-
-## 🎨 UI Component System
-
-### Design System
-- **Consistent Theming**: CSS variables for colors
-- **Responsive Grid**: Mobile-first layout
-- **Accessibility**: ARIA compliance via Radix UI
-- **Animation Library**: Smooth transitions and micro-interactions
-
-### Key Components
-- **Chat**: Main conversation interface
-- **Sidebar**: Navigation and settings
-- **Settings Panel**: Configuration interface
-- **Loading States**: Skeleton loaders
-- **Form Controls**: Input, buttons, selects
-
-## 🔒 Security Features
-
-- **Route Protection**: Client and server-side guards
-- **Input Validation**: Sanitized user inputs
-- **Error Boundaries**: Graceful error handling
-- **Rate Limiting**: API protection
-- **Environment Variables**: Secure configuration
-
-## 📊 Performance Optimizations
-
-- **Code Splitting**: Lazy-loaded components
-- **Image Optimization**: Next.js Image component
-- **Caching**: Strategic data caching
-- **Bundle Analysis**: Optimized build sizes
-- **Memory Management**: Efficient state handling
-
-## 🌐 Deployment
-
-### Recommended Platforms
-- **Vercel**: Optimized for Next.js
-- **Netlify**: Alternative deployment option
-- **Self-hosted**: Docker/PM2 configurations
-
-### Build Configuration
-```bash
-# Production build with Turbopack
-npm run build
-
-# Export static files (if needed)
-npm run export
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## 📄 License
-
-This project is created by **Ranbir** for educational and demonstration purposes.
-
-## 🆘 Support & Documentation
-
-- **Issues**: Report bugs via GitHub Issues
-- **Discussions**: Community support and feature requests
-- **Documentation**: Comprehensive component docs in `/docs`
 
 ---
 
-**Harmony** represents the future of collaborative platforms - where AI meets intuitive design to create seamless user experiences. Built with modern technologies and best practices, it's designed to scale and evolve with your team's needs.
+## 🔐 Environment Variables
 
-*Made with ❤️ by Ranbir*
+Create a `.env.local` file and add:
+
+```env
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
+CLERK_SECRET_KEY=sk_test_your_secret_here
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/login
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+NEXT_PUBLIC_CLERK_DOMAIN=https://your-domain.com
+
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project. firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project.firebaseio.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project. appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+# Google Gemini AI
+NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+
+# Google Maps
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
+
+---
+
+## 🧪 Usage
+
+* Step 1: Sign up or log in with Clerk authentication
+* Step 2: Access the AI-powered dashboard
+* Step 3: Start chatting with Gemini AI assistant
+* Step 4: Explore interactive maps and location services
+* Step 5: Manage your profile and settings
+* Step 6: Experience 3D visualizations and animations
+
+---
+
+## 🎥 Demo
+
+* **Live Demo:** Coming soon on Railway
+* **Features:**
+  - AI Chat with conversation history
+  - Real-time messaging
+  - Interactive maps
+  - 3D hyperspeed animations
+  - Profile management
+
+---
+
+## 📂 Project Structure
+
+```text
+harmony/
+├── app/                      # Next.js App Router
+│   ├── api/                 # API routes (Gemini chat)
+│   ├── dashboard/           # Main chat interface
+│   ├── map/                 # Interactive maps
+│   ├── prices/              # Subscription management
+│   ├── profile/             # User profiles
+│   ├── settings/            # App configuration
+│   ├── login/               # Authentication
+│   ├── page.tsx             # Landing page
+│   ├── layout.tsx           # Root layout
+│   └── not-found.tsx        # 404 page
+├── components/              # Reusable components
+│   ├── app-sidebar.tsx
+│   ├── Hyperspeed.tsx       # 3D visualization
+│   ├── Dock.tsx
+│   ├── route-guard.tsx
+│   └── ui/                  # UI components
+├── contexts/                # React Context providers
+│   ├── auth-context.tsx
+│   ├── bookmarks-context.tsx
+│   ├── chat-with-history-provider.tsx
+│   ├── theme-context.tsx
+│   └── settings-context.tsx
+├── hooks/                   # Custom React hooks
+├── lib/                     # Utilities & services
+│   ├── clerk-config.ts
+│   └── utils.ts
+├── public/                  # Static assets
+├── next.config.ts
+├── package.json
+└── README.md
+```
+
+---
+
+## 🚧 Future Improvements
+
+- [ ] Add video conferencing capabilities
+- [ ] Implement file sharing system
+- [ ] Create team collaboration features
+- [ ] Add voice message support
+- [ ] Implement advanced analytics dashboard
+- [ ] Add mobile app version
+- [ ] Create plugin/extension system
+- [ ] Add multi-language support
+
+---
+
+## 👥 Team / Author
+
+* **Name:** Ranbir (DevRanbir)
+* **GitHub:** [https://github.com/DevRanbir](https://github.com/DevRanbir)
+* **Portfolio:** [https://devranbir.github.io/](https://devranbir.github.io/)
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License. 
+
+---
+
+## 🔧 Production Deployment
+
+For production deployment on Railway: 
+
+1. Set all environment variables in Railway dashboard
+2. Update Clerk dashboard with production URLs
+3. Configure allowed origins and redirect URLs
+4. Deploy with `npm run build`
+5. Monitor logs for any configuration issues
+
+See `PRODUCTION_FIX. md` for detailed deployment guide.
+
+---
+
+## 🙏 Acknowledgments
+
+- Next.js team for the amazing framework
+- Clerk for authentication solution
+- Google for Gemini AI and Maps API
+- Firebase for real-time database
+- Vercel for hosting solutions
+- Open source community
