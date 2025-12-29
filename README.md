@@ -24,7 +24,6 @@
 
 ### Project Structure
 ```
-harmony/
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes (Gemini chat, auth)
 │   ├── dashboard/         # Main chat interface
